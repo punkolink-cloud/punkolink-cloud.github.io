@@ -40,7 +40,7 @@
 
     document.getElementById('kvId').textContent = service.id;
     document.getElementById('kvRegion').textContent = service.region || '—';
-    document.getElementById('kvIp').textContent = (service.vm && service.vm.ip) || '—';
+    document.getElementById('kvHostname').textContent = (service.vm && service.vm.hostname) || '—';
     document.getElementById('kvPort').textContent = service.port != null ? service.port : '—';
 
     const toggleBtn = document.getElementById('toggleBtn');
