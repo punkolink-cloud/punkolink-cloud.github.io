@@ -2,7 +2,7 @@
 // which forwards each path to whichever microservice actually owns it.
 // The client has no notion of "auth service" vs "backend service"
 // anymore — just one API.
-const API_BASE = window.PUNKOLINK_API_BASE || 'https://vps25.europe-central2-a.core.punkolink.com';
+const API_BASE = window.PUNKOLINK_API_BASE || 'https://gc-25.europe-central2-a.network.punkolink.com';
 
 /**
  * Thin fetch wrapper: builds the URL, always sends/expects JSON unless
