@@ -77,8 +77,11 @@ const BackendApi = {
   listServices: function (userId) {
     return apiRequest('/services/' + userId, { method: 'GET' });
   },
-  createService: function (serviceName, userId, regionName) {
-    return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: { region_name: regionName } });
+  createService: function (serviceName, userId, regionName, customName, envText) {
+    return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId, {
+      method: 'POST',
+      body: { region_name: regionName, custom_name: customName || null, env: envText || null },
+    });
   },
   deleteService: function (serviceName, userId, id) {
     return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'DELETE' });
@@ -89,15 +92,15 @@ const BackendApi = {
   stopService: function (serviceName, userId, id) {
     return apiRequest('/stop/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST' });
   },
-  setEnv: function (serviceName, userId, envText) {
-    return apiRequest('/env/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: envText, raw: true, headers: { 'Content-Type': 'text/plain' } });
+  setEnv: function (serviceName, userId, id, envText) {
+    return apiRequest('/env/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: envText, raw: true, headers: { 'Content-Type': 'text/plain' } });
   },
-  setSettings: function (serviceName, userId, onExit) {
-    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: { on_exit: onExit } });
+  setSettings: function (serviceName, userId, id, onExit) {
+    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: { on_exit: onExit } });
   },
-  uploadPayload: function (serviceName, userId, file) {
+  uploadPayload: function (serviceName, userId, id, file) {
     const formData = new FormData();
     formData.append('file', file);
-    return apiRequest('/payload/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: formData, form: true });
+    return apiRequest('/payload/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: formData, form: true });
   },
 };
