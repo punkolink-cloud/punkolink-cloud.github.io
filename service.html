@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Punkolink — Service</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <a href="index.html" class="logo">
+      <span class="logo-dot"></span>
+      punkolink
+    </a>
+    <nav class="nav">
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="finance.html">Finance</a>
+    </nav>
+    <div class="nav-user">
+      <span class="nav-user-tag" id="navUserTag"></span>
+      <a href="#" class="btn btn-ghost btn-sm hidden" id="navLogout">Log Out</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="shell">
+      <a href="dashboard.html" class="back-link">&larr; Back to Services</a>
+
+      <div id="loadingState" class="loading-row">Loading service…</div>
+      <div id="notFoundState" class="banner">Service not found.</div>
+
+      <div id="serviceContent" class="hidden">
+        <div class="page-head">
+          <div>
+            <div class="page-tag" id="serviceType"></div>
+            <h1 class="page-title" id="serviceName"></h1>
+          </div>
+          <span class="status" id="serviceStatus"><span class="status-dot"></span></span>
+        </div>
+
+        <div class="banner" id="detailBanner"></div>
+
+        <div class="detail-grid">
+          <div>
+            <div class="detail-card">
+              <h3>Overview</h3>
+              <div class="kv-list">
+                <div class="kv-row"><span class="kv-key">Instance ID</span><span class="kv-val" id="kvId"></span></div>
+                <div class="kv-row"><span class="kv-key">Region</span><span class="kv-val" id="kvRegion"></span></div>
+                <div class="kv-row"><span class="kv-key">IP</span><span class="kv-val" id="kvIp"></span></div>
+                <div class="kv-row"><span class="kv-key">Port</span><span class="kv-val" id="kvPort"></span></div>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <h3>Actions</h3>
+              <div class="detail-actions">
+                <button class="btn btn-secondary btn-sm" id="toggleBtn"></button>
+                <button class="btn btn-danger btn-sm" id="deleteBtn">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-card">
+              <h3>Environment Variables</h3>
+              <p class="section-desc">One <code>KEY=value</code> pair per line. Replaces whatever is currently set. <code>PORT</code> is assigned automatically and can't be set here.</p>
+              <form id="envForm">
+                <div class="form-group">
+                  <textarea class="form-textarea" id="envText" rows="8" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
+                  <span class="form-error" id="envError"></span>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary btn-sm">Save Environment</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="section-card" id="payloadSection">
+              <h3>Payload</h3>
+              <p class="section-desc">A zipped Node.js project, or a standalone binary.</p>
+              <div class="kv-list" id="payloadInfo" style="margin-bottom: var(--space-4);"></div>
+              <form id="payloadForm">
+                <div class="form-group">
+                  <input class="form-file" type="file" id="payloadFile" required>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary btn-sm">Upload Payload</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="section-card">
+              <h3>Settings</h3>
+              <p class="section-desc">What should happen to the container when it exits.</p>
+              <form id="settingsForm">
+                <div class="form-group">
+                  <label class="form-label" for="onExitSelect">On Exit</label>
+                  <select class="form-select" id="onExitSelect">
+                    <option value="restart">Restart</option>
+                    <option value="remove">Remove</option>
+                  </select>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary btn-sm">Save Settings</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © 2026 Punkolink — internal control panel.
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/service.js"></script>
+</body>
+</html>

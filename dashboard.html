@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Punkolink — Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <a href="index.html" class="logo">
+      <span class="logo-dot"></span>
+      punkolink
+    </a>
+    <nav class="nav">
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="finance.html">Finance</a>
+    </nav>
+    <div class="nav-user">
+      <span class="nav-user-tag" id="navUserTag"></span>
+      <a href="#" class="btn btn-ghost btn-sm hidden" id="navLogout">Log Out</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="shell">
+      <div class="page-head">
+        <div>
+          <div class="page-tag">Control Panel</div>
+          <h1 class="page-title">Services</h1>
+        </div>
+        <button class="btn btn-primary" id="addServiceBtn">+ Add Service</button>
+      </div>
+
+      <div class="banner" id="dashboardBanner"></div>
+
+      <div class="toolbar">
+        <div class="toolbar-info" id="serviceCount"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Region</th>
+              <th>IP</th>
+              <th>Port</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="servicesBody">
+            <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © 2026 Punkolink — internal control panel.
+  </footer>
+
+  <!-- Add service modal -->
+  <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+    <div class="modal">
+      <button class="modal-close" id="addModalClose" aria-label="Close">&times;</button>
+      <div class="modal-header">
+        <h2 id="addModalTitle">Add Service</h2>
+        <p>Charged immediately for the time left until the next billing tick.</p>
+      </div>
+
+      <div class="banner" id="addModalBanner"></div>
+
+      <form id="addServiceForm">
+        <div class="form-group">
+          <label class="form-label" for="serviceSelect">Service Type</label>
+          <select class="form-select" id="serviceSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regionSelect">Region</label>
+          <select class="form-select" id="regionSelect" required></select>
+          <p class="form-hint">The virtual machine within the region is picked automatically.</p>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block" id="addServiceSubmit">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

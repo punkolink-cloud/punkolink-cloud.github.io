@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Punkolink — Create Account</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <a href="index.html" class="logo">
+      <span class="logo-dot"></span>
+      punkolink
+    </a>
+    <nav class="nav">
+      <a href="login.html">Log In</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="shell-narrow">
+      <div class="auth-card">
+        <div class="auth-card-head">
+          <h1>Create Account</h1>
+          <p>Set up access to the control panel.</p>
+        </div>
+
+        <div class="banner" id="formBanner"></div>
+
+        <form id="registerForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input class="form-input" type="text" id="username" name="username" autocomplete="username" placeholder="jdoe" required>
+            <span class="form-error" id="errUsername">Username is required.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-input" type="password" id="password" name="password" autocomplete="new-password" placeholder="••••••••" required>
+            <span class="form-error" id="errPassword">Password is required.</span>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create Account</button>
+          </div>
+        </form>
+
+        <div class="auth-switch">
+          Already have an account? <a href="login.html">Log in</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © 2026 Punkolink — internal control panel.
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/session.js"></script>
+  <script>
+    (function () {
+      const form = document.getElementById('registerForm');
+      const banner = document.getElementById('formBanner');
+      const submitBtn = document.getElementById('submitBtn');
+
+      function showBanner(message, isError) {
+        banner.textContent = message;
+        banner.classList.add('visible');
+        banner.classList.toggle('success', !isError);
+      }
+
+      // Already logged in? No need to register again.
+      if (Session.get()) {
+        window.location.href = 'dashboard.html';
+      }
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        let valid = true;
+        if (!username) {
+          document.getElementById('username').classList.add('invalid');
+          document.getElementById('errUsername').classList.add('visible');
+          valid = false;
+        }
+        if (!password) {
+          document.getElementById('password').classList.add('invalid');
+          document.getElementById('errPassword').classList.add('visible');
+          valid = false;
+        }
+        if (!valid) return;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating…';
+        banner.classList.remove('visible');
+
+        const registerResult = await AuthApi.register(username, password);
+
+        if (!registerResult.ok) {
+          const reason = (registerResult.data && registerResult.data.reason) || 'Registration failed.';
+          showBanner(reason === 'username already taken' ? 'That username is already taken.' : reason, true);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+          return;
+        }
+
+        // Registration doesn't return a token — log in immediately so we
+        // land on the dashboard with a session already in hand.
+        const loginResult = await AuthApi.login(username, password);
+        if (!loginResult.ok || !loginResult.data || !loginResult.data.token) {
+          showBanner('Account created — log in to continue.', false);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+          setTimeout(function () { window.location.href = 'login.html'; }, 1200);
+          return;
+        }
+
+        Session.save(loginResult.data.token);
+        window.location.href = 'dashboard.html';
+      });
+    })();
+  </script>
+</body>
+</html>

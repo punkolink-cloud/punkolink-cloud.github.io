@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Punkolink — Control Panel</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <a href="index.html" class="logo">
+      <span class="logo-dot"></span>
+      punkolink
+    </a>
+    <nav class="nav">
+      <a href="login.html">Log In</a>
+      <a href="register.html" class="btn btn-secondary btn-sm">Get Started</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-tag">
+          <span class="tag-line"></span>
+          Infrastructure, Run Yourself.
+        </div>
+        <h1 class="hero-title">
+          One Panel.<br>
+          Every Service You Run.
+        </h1>
+        <p class="hero-desc">
+          Spin up Postgres, Redis, Meilisearch, Qdrant, or your own Node.js
+          project and binaries — billed by the minute, managed from one
+          dashboard.
+        </p>
+        <div class="hero-actions">
+          <a href="register.html" class="btn btn-primary">Create Account</a>
+          <a href="login.html" class="btn btn-secondary">Log In</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature-strip">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Managed Images</h3>
+          <p>Postgres, Redis, Meilisearch, Qdrant — pulled straight from Docker Hub, configured with your own environment variables.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Your Own Code</h3>
+          <p>Upload a Node.js project as a zip, or a standalone binary. It runs in its own container, on its own port.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Billed By the Minute</h3>
+          <p>Every service has a per-minute price. Balance and charge history are always one click away.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    © 2026 Punkolink — internal control panel.
+  </footer>
+
+</body>
+</html>

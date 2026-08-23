@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Punkolink — Finance</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <a href="index.html" class="logo">
+      <span class="logo-dot"></span>
+      punkolink
+    </a>
+    <nav class="nav">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="finance.html" class="active">Finance</a>
+    </nav>
+    <div class="nav-user">
+      <span class="nav-user-tag" id="navUserTag"></span>
+      <a href="#" class="btn btn-ghost btn-sm hidden" id="navLogout">Log Out</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="shell">
+      <div class="page-head">
+        <div>
+          <div class="page-tag">Billing</div>
+          <h1 class="page-title">Finance</h1>
+        </div>
+      </div>
+
+      <div class="banner" id="financeBanner"></div>
+
+      <div class="stat-row">
+        <div class="stat-tile">
+          <div class="stat-label">Current Balance</div>
+          <div class="stat-value" id="balanceValue">—<span class="unit">units</span></div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Charges Shown</div>
+          <div class="stat-value" id="chargeCount">—</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-info">Most recent charges first.</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Amount</th>
+              <th>Charged At (UTC)</th>
+            </tr>
+          </thead>
+          <tbody id="chargesBody">
+            <tr class="empty-row"><td colspan="3">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © 2026 Punkolink — internal control panel.
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/finance.js"></script>
+</body>
+</html>
