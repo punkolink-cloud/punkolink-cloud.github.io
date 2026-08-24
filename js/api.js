@@ -1,8 +1,7 @@
-// Every request goes through the reverse proxy on this single host,
-// which forwards each path to whichever microservice actually owns it.
-// The client has no notion of "auth service" vs "backend service"
-// anymore — just one API.
-const API_BASE = window.PUNKOLINK_API_BASE || 'https://gc-25.europe-central2-a.network.punkolink.com';
+// Base URLs for the two backend services. Edit these if you're not running
+// everything on localhost with the default ports.
+const AUTH_BASE = window.PUNKOLINK_AUTH_BASE || 'http://127.0.0.1:8081';
+const BACKEND_BASE = window.PUNKOLINK_BACKEND_BASE || 'http://127.0.0.1:8080';
 
 /**
  * Thin fetch wrapper: builds the URL, always sends/expects JSON unless
@@ -11,7 +10,7 @@ const API_BASE = window.PUNKOLINK_API_BASE || 'https://gc-25.europe-central2-a.n
  * non-2xx (every route in this API returns a JSON body on error too, so
  * callers almost always want that body).
  */
-async function apiRequest(path, options) {
+async function apiRequest(base, path, options) {
   options = options || {};
   const init = {
     method: options.method || 'GET',
@@ -39,7 +38,7 @@ async function apiRequest(path, options) {
 
   let response;
   try {
-    response = await fetch(API_BASE + path, init);
+    response = await fetch(base + path, init);
   } catch (err) {
     return { ok: false, status: 0, data: null, networkError: true };
   }
@@ -57,50 +56,47 @@ async function apiRequest(path, options) {
 
 const AuthApi = {
   register: function (username, password) {
-    return apiRequest('/register', { method: 'POST', body: { username: username, password: password } });
+    return apiRequest(AUTH_BASE, '/register', { method: 'POST', body: { username: username, password: password } });
   },
   login: function (username, password) {
-    return apiRequest('/login', { method: 'POST', body: { username: username, password: password } });
+    return apiRequest(AUTH_BASE, '/login', { method: 'POST', body: { username: username, password: password } });
   },
   account: function (userId) {
-    return apiRequest('/account/' + userId, { method: 'GET' });
+    return apiRequest(AUTH_BASE, '/account/' + userId, { method: 'GET' });
   },
 };
 
 const BackendApi = {
   catalog: function () {
-    return apiRequest('/catalog', { method: 'GET' });
+    return apiRequest(BACKEND_BASE, '/catalog', { method: 'GET' });
   },
   regions: function () {
-    return apiRequest('/regions', { method: 'GET' });
+    return apiRequest(BACKEND_BASE, '/regions', { method: 'GET' });
   },
   listServices: function (userId) {
-    return apiRequest('/services/' + userId, { method: 'GET' });
+    return apiRequest(BACKEND_BASE, '/services/' + userId, { method: 'GET' });
   },
-  createService: function (serviceName, userId, regionName, customName, envText) {
-    return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId, {
-      method: 'POST',
-      body: { region_name: regionName, custom_name: customName || null, env: envText || null },
-    });
+  createService: function (serviceName, userId, regionName) {
+    return apiRequest(BACKEND_BASE, '/services/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: { region_name: regionName } });
   },
   deleteService: function (serviceName, userId, id) {
-    return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'DELETE' });
+    return apiRequest(BACKEND_BASE, '/services/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'DELETE' });
   },
   launchService: function (serviceName, userId, id) {
-    return apiRequest('/launch/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST' });
+    return apiRequest(BACKEND_BASE, '/launch/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST' });
   },
   stopService: function (serviceName, userId, id) {
-    return apiRequest('/stop/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST' });
+    return apiRequest(BACKEND_BASE, '/stop/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST' });
   },
-  setEnv: function (serviceName, userId, id, envText) {
-    return apiRequest('/env/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: envText, raw: true, headers: { 'Content-Type': 'text/plain' } });
+  setEnv: function (serviceName, userId, envText) {
+    return apiRequest(BACKEND_BASE, '/env/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: envText, raw: true, headers: { 'Content-Type': 'text/plain' } });
   },
-  setSettings: function (serviceName, userId, id, onExit) {
-    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: { on_exit: onExit } });
+  setSettings: function (serviceName, userId, onExit) {
+    return apiRequest(BACKEND_BASE, '/settings/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: { on_exit: onExit } });
   },
-  uploadPayload: function (serviceName, userId, id, file) {
+  uploadPayload: function (serviceName, userId, file) {
     const formData = new FormData();
     formData.append('file', file);
-    return apiRequest('/payload/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: formData, form: true });
+    return apiRequest(BACKEND_BASE, '/payload/' + encodeURIComponent(serviceName) + '/' + userId, { method: 'POST', body: formData, form: true });
   },
 };

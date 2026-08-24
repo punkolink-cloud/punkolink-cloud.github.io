@@ -30,9 +30,8 @@
     const isRunService = RUN_SERVICES.indexOf(service.service_name) !== -1;
     const isActive = service.status === 'active';
 
-    document.getElementById('serviceType').textContent =
-      service.service_name + ' · ' + (isRunService ? 'Compute' : 'Managed Image');
-    document.getElementById('serviceName').textContent = service.custom_name || service.service_name;
+    document.getElementById('serviceType').textContent = isRunService ? 'Compute' : 'Managed Image';
+    document.getElementById('serviceName').textContent = service.service_name;
 
     const statusEl = document.getElementById('serviceStatus');
     statusEl.className = 'status ' + (isActive ? 'is-active' : 'is-stopped');
@@ -40,7 +39,7 @@
 
     document.getElementById('kvId').textContent = service.id;
     document.getElementById('kvRegion').textContent = service.region || '—';
-    document.getElementById('kvHostname').textContent = (service.vm && service.vm.hostname) || '—';
+    document.getElementById('kvIp').textContent = (service.vm && service.vm.ip) || '—';
     document.getElementById('kvPort').textContent = service.port != null ? service.port : '—';
 
     const toggleBtn = document.getElementById('toggleBtn');
@@ -96,7 +95,7 @@
   });
 
   document.getElementById('deleteBtn').addEventListener('click', async function () {
-    if (!window.confirm('Delete ' + (current.custom_name || current.service_name) + '? This cannot be undone.')) return;
+    if (!window.confirm('Delete ' + current.service_name + '? This cannot be undone.')) return;
     const result = await BackendApi.deleteService(current.service_name, session.userId, current.id);
     if (!result.ok) {
       showBanner('Failed to delete service.', true);
@@ -110,7 +109,7 @@
     const errEl = document.getElementById('envError');
     errEl.classList.remove('visible');
 
-    const result = await BackendApi.setEnv(current.service_name, session.userId, current.id, document.getElementById('envText').value);
+    const result = await BackendApi.setEnv(current.service_name, session.userId, document.getElementById('envText').value);
     if (!result.ok) {
       errEl.textContent = (result.data && result.data.reason) || 'Failed to save environment variables.';
       errEl.classList.add('visible');
@@ -126,7 +125,7 @@
     const file = fileInput.files[0];
     if (!file) return;
 
-    const result = await BackendApi.uploadPayload(current.service_name, session.userId, current.id, file);
+    const result = await BackendApi.uploadPayload(current.service_name, session.userId, file);
     if (!result.ok) {
       showBanner((result.data && result.data.reason) || 'Failed to upload payload.', true);
       return;
@@ -139,7 +138,7 @@
   document.getElementById('settingsForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const onExit = document.getElementById('onExitSelect').value;
-    const result = await BackendApi.setSettings(current.service_name, session.userId, current.id, onExit);
+    const result = await BackendApi.setSettings(current.service_name, session.userId, onExit);
     if (!result.ok) {
       showBanner((result.data && result.data.reason) || 'Failed to save settings.', true);
       return;

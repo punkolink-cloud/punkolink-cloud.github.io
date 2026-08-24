@@ -43,10 +43,29 @@
           <div class="stat-label">Current Balance</div>
           <div class="stat-value" id="balanceValue">—<span class="unit">units</span></div>
         </div>
+        <div class="stat-tile">
+          <div class="stat-label">Charges Shown</div>
+          <div class="stat-value" id="chargeCount">—</div>
+        </div>
       </div>
 
       <div class="toolbar">
-        <div class="toolbar-info">Balance is deducted once a minute for every active service.</div>
+        <div class="toolbar-info">Most recent charges first.</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Amount</th>
+              <th>Charged At (UTC)</th>
+            </tr>
+          </thead>
+          <tbody id="chargesBody">
+            <tr class="empty-row"><td colspan="3">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </main>

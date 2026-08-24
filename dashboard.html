@@ -48,9 +48,9 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>Service</th>
+              <th>Type</th>
               <th>Region</th>
-              <th>Hostname</th>
+              <th>IP</th>
               <th>Port</th>
               <th>Status</th>
               <th></th>
@@ -74,7 +74,7 @@
       <button class="modal-close" id="addModalClose" aria-label="Close">&times;</button>
       <div class="modal-header">
         <h2 id="addModalTitle">Add Service</h2>
-        <p>Billed once a minute for every active service, starting at the next tick.</p>
+        <p>Charged immediately for the time left until the next billing tick.</p>
       </div>
 
       <div class="banner" id="addModalBanner"></div>
@@ -88,15 +88,6 @@
           <label class="form-label" for="regionSelect">Region</label>
           <select class="form-select" id="regionSelect" required></select>
           <p class="form-hint">The virtual machine within the region is picked automatically.</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="customNameInput">Name <span class="optional">(optional)</span></label>
-          <input class="form-input" type="text" id="customNameInput" placeholder="e.g. main-cache">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="envTextInput">Environment Variables <span class="optional">(optional)</span></label>
-          <textarea class="form-textarea" id="envTextInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
-          <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary btn-block" id="addServiceSubmit">Create</button>
