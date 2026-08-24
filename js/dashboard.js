@@ -30,10 +30,10 @@
     const statusClass = isActive ? 'is-active' : 'is-stopped';
 
     tr.innerHTML =
-      '<td>' + escapeHtml(service.service_name) + '</td>' +
-      '<td><span class="chip">' + escapeHtml(serviceType(service.service_name)) + '</span></td>' +
+      '<td>' + escapeHtml(service.custom_name || service.service_name) + '</td>' +
+      '<td><span class="chip">' + escapeHtml(service.service_name) + ' · ' + escapeHtml(serviceType(service.service_name)) + '</span></td>' +
       '<td class="cell-mono">' + escapeHtml(service.region || '—') + '</td>' +
-      '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.ip) || '—') + '</td>' +
+      '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.port != null ? String(service.port) : '—') + '</td>' +
       '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(service.status) + '</span></td>' +
       '<td class="cell-actions"></td>';
@@ -84,7 +84,7 @@
   }
 
   async function deleteService(service, row) {
-    if (!window.confirm('Delete ' + service.service_name + '? This cannot be undone.')) return;
+    if (!window.confirm('Delete ' + (service.custom_name || service.service_name) + '? This cannot be undone.')) return;
     row.style.opacity = '0.5';
     const result = await BackendApi.deleteService(service.service_name, session.userId, service.id);
     if (!result.ok) {
@@ -124,10 +124,14 @@
   const addModalBanner = document.getElementById('addModalBanner');
   const serviceSelect = document.getElementById('serviceSelect');
   const regionSelect = document.getElementById('regionSelect');
+  const customNameInput = document.getElementById('customNameInput');
+  const envTextInput = document.getElementById('envTextInput');
   const addServiceForm = document.getElementById('addServiceForm');
   const addServiceSubmit = document.getElementById('addServiceSubmit');
 
   function openAddModal() {
+    customNameInput.value = '';
+    envTextInput.value = '';
     addModal.classList.add('is-open');
     document.body.style.overflow = 'hidden';
   }
@@ -181,7 +185,13 @@
     addServiceSubmit.textContent = 'Creating…';
     hideBanner(addModalBanner);
 
-    const result = await BackendApi.createService(serviceName, session.userId, regionName);
+    const result = await BackendApi.createService(
+      serviceName,
+      session.userId,
+      regionName,
+      customNameInput.value.trim(),
+      envTextInput.value
+    );
 
     addServiceSubmit.disabled = false;
     addServiceSubmit.textContent = 'Create';

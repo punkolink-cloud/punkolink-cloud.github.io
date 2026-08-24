@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Paddle.js: must be loaded from Paddle's own CDN, it isn't
+       something that can be self-hosted. -->
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 </head>
 <body>
 
@@ -43,29 +47,25 @@
           <div class="stat-label">Current Balance</div>
           <div class="stat-value" id="balanceValue">—<span class="unit">units</span></div>
         </div>
-        <div class="stat-tile">
-          <div class="stat-label">Charges Shown</div>
-          <div class="stat-value" id="chargeCount">—</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-info">Balance is deducted once a minute for every active service.</div>
+      </div>
+
+      <div class="page-head">
+        <div>
+          <div class="page-tag">Paddle</div>
+          <h2 class="page-title" style="font-size: var(--text-h2);">Buy Credits</h2>
         </div>
       </div>
 
       <div class="toolbar">
-        <div class="toolbar-info">Most recent charges first.</div>
+        <div class="toolbar-info">Paid through Paddle. Credits are added automatically once the payment is confirmed — this can take a few seconds.</div>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Amount</th>
-              <th>Charged At (UTC)</th>
-            </tr>
-          </thead>
-          <tbody id="chargesBody">
-            <tr class="empty-row"><td colspan="3">Loading…</td></tr>
-          </tbody>
-        </table>
+      <div class="package-grid" id="packageGrid">
+        <div class="loading-row">Loading packages…</div>
       </div>
     </div>
   </main>
