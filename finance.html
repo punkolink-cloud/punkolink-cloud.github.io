@@ -45,12 +45,12 @@
       <div class="stat-row">
         <div class="stat-tile">
           <div class="stat-label">Current Balance</div>
-          <div class="stat-value" id="balanceValue">—<span class="unit">units</span></div>
+          <div class="stat-value" id="balanceValue">—<span class="unit">credits</span></div>
         </div>
       </div>
 
       <div class="toolbar">
-        <div class="toolbar-info">Balance is deducted once a minute for every active service.</div>
+        <div class="toolbar-info">5 credits/month per service, billed in small fractions once a minute.</div>
       </div>
 
       <div class="page-head">
@@ -64,8 +64,17 @@
         <div class="toolbar-info">Paid through Paddle. Credits are added automatically once the payment is confirmed — this can take a few seconds.</div>
       </div>
 
-      <div class="package-grid" id="packageGrid">
-        <div class="loading-row">Loading packages…</div>
+      <div id="packSection">
+        <div class="loading-row" id="packLoading">Loading…</div>
+        <div class="package-card hidden" id="packCard" style="max-width: 360px;">
+          <div class="package-label">Credits come in packs of <span id="packSize">5</span></div>
+          <div class="form-group">
+            <label class="form-label" for="packQuantity">Number of Packs</label>
+            <input class="form-input" type="number" id="packQuantity" min="1" step="1" value="1">
+          </div>
+          <div class="package-credits"><span id="packTotal">5</span><span class="unit">credits</span></div>
+          <button class="btn btn-primary btn-block" id="buyBtn">Buy</button>
+        </div>
       </div>
     </div>
   </main>

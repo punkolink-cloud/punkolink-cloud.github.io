@@ -4,9 +4,19 @@
 
   const banner = document.getElementById('financeBanner');
   const balanceValueEl = document.getElementById('balanceValue');
-  const packageGrid = document.getElementById('packageGrid');
+  const packLoading = document.getElementById('packLoading');
+  const packCard = document.getElementById('packCard');
+  const packSizeEl = document.getElementById('packSize');
+  const packQuantityEl = document.getElementById('packQuantity');
+  const packTotalEl = document.getElementById('packTotal');
+  const buyBtn = document.getElementById('buyBtn');
 
-  let startingBalance = null;
+  // The exact picocredit balance, as a BigInt — used only to detect
+  // "did this actually go up yet", never for display (the formatted
+  // `balance` string from the API is what's shown).
+  let startingBalanceRaw = null;
+  let creditsPerPack = 5;
+  let packPriceId = null;
 
   function showBanner(message, isError) {
     banner.textContent = message;
@@ -14,58 +24,31 @@
     banner.classList.toggle('success', !isError);
   }
 
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, function (ch) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-    });
+  function currentQuantity() {
+    const quantity = parseInt(packQuantityEl.value, 10);
+    return Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+  }
+
+  function updateTotal() {
+    packTotalEl.textContent = currentQuantity() * creditsPerPack;
   }
 
   async function loadBalance() {
     const result = await AuthApi.account(session.userId);
     if (!result.ok) return null;
-    const balance = (result.data && result.data.balance) || 0;
-    balanceValueEl.innerHTML = balance + '<span class="unit">units</span>';
-    return balance;
+    const data = result.data || {};
+    balanceValueEl.innerHTML = (data.balance || '0.00000') + '<span class="unit">credits</span>';
+    return data.balance_picocredits || null;
   }
 
-  function renderPackages(packages) {
-    if (packages.length === 0) {
-      packageGrid.innerHTML = '<div class="loading-row">No credit packages configured.</div>';
-      return;
-    }
-
-    packageGrid.innerHTML = '';
-    packages.forEach(function (pkg) {
-      const card = document.createElement('div');
-      card.className = 'package-card';
-
-      const configured = !!pkg.price_id;
-
-      card.innerHTML =
-        '<div class="package-label">' + escapeHtml(pkg.label) + '</div>' +
-        '<div class="package-credits">' + escapeHtml(pkg.credits) + '<span class="unit">credits</span></div>';
-
-      const buyBtn = document.createElement('button');
-      buyBtn.className = 'btn btn-primary btn-block';
-      buyBtn.textContent = configured ? 'Buy' : 'Not available yet';
-      buyBtn.disabled = !configured;
-      buyBtn.addEventListener('click', function () {
-        openCheckout(pkg);
-      });
-
-      card.appendChild(buyBtn);
-      packageGrid.appendChild(card);
-    });
-  }
-
-  function openCheckout(pkg) {
+  function openCheckout() {
     if (typeof Paddle === 'undefined') {
       showBanner('Paddle failed to load. Check your connection and try again.', true);
       return;
     }
 
     Paddle.Checkout.open({
-      items: [{ priceId: pkg.price_id, quantity: 1 }],
+      items: [{ priceId: packPriceId, quantity: currentQuantity() }],
       customData: { user_id: String(session.userId) },
     });
   }
@@ -73,18 +56,20 @@
   /** Credits are applied by the backend once Paddle's webhook confirms
    *  the payment, not by anything on this page — so once checkout
    *  reports success, poll the balance for a little while and report
-   *  once it actually moves, instead of pretending it's instant. */
+   *  once it actually moves, instead of pretending it's instant. Raw
+   *  picocredit strings compare exactly via BigInt — a plain Number
+   *  comparison would silently lose precision above ~9007 credits. */
   function watchForCredit() {
     showBanner('Payment received — crediting your balance…', false);
 
     let attempts = 0;
     const poll = setInterval(async function () {
       attempts += 1;
-      const balance = await loadBalance();
+      const rawBalance = await loadBalance();
 
-      if (balance !== null && startingBalance !== null && balance > startingBalance) {
+      if (rawBalance !== null && startingBalanceRaw !== null && BigInt(rawBalance) > BigInt(startingBalanceRaw)) {
         clearInterval(poll);
-        showBanner('Credits added. New balance: ' + balance + '.', false);
+        showBanner('Credits added.', false);
         return;
       }
 
@@ -102,24 +87,31 @@
   }
 
   async function init() {
-    startingBalance = await loadBalance();
-    if (startingBalance === null) {
+    startingBalanceRaw = await loadBalance();
+    if (startingBalanceRaw === null) {
       showBanner('Couldn’t load account. Is the auth service running?', true);
     }
 
     const configResult = await AuthApi.paddleConfig();
     if (!configResult.ok) {
       showBanner('Couldn’t load the Paddle configuration. Is the auth service running?', true);
-      packageGrid.innerHTML = '<div class="loading-row">Unavailable.</div>';
+      packLoading.textContent = 'Unavailable.';
       return;
     }
 
     const config = configResult.data || {};
-    const packages = config.packages || [];
-    renderPackages(packages);
+    creditsPerPack = config.credits_per_pack || 5;
+    packPriceId = config.pack_price_id || '';
+    packSizeEl.textContent = creditsPerPack;
+    updateTotal();
 
-    if (!config.client_token) {
-      showBanner('Paddle isn’t configured yet (missing client token) — purchases are disabled for now.', true);
+    packLoading.classList.add('hidden');
+    packCard.classList.remove('hidden');
+
+    if (!config.client_token || !packPriceId) {
+      showBanner('Paddle isn’t configured yet — purchases are disabled for now.', true);
+      buyBtn.disabled = true;
+      buyBtn.textContent = 'Not available yet';
       return;
     }
 
@@ -127,6 +119,9 @@
       Paddle.Environment.set('sandbox');
     }
     Paddle.Initialize({ token: config.client_token, eventCallback: onPaddleEvent });
+
+    packQuantityEl.addEventListener('input', updateTotal);
+    buyBtn.addEventListener('click', openCheckout);
   }
 
   init();
