@@ -34,9 +34,9 @@
 
         <form id="registerForm" novalidate>
           <div class="form-group">
-            <label class="form-label" for="username">Username</label>
-            <input class="form-input" type="text" id="username" name="username" autocomplete="username" placeholder="jdoe" required>
-            <span class="form-error" id="errUsername">Username is required.</span>
+            <label class="form-label" for="email">Email</label>
+            <input class="form-input" type="email" id="email" name="email" autocomplete="email" placeholder="jdoe@example.com" required>
+            <span class="form-error" id="errEmail">A valid email is required.</span>
           </div>
 
           <div class="form-group">
@@ -69,6 +69,14 @@
       const banner = document.getElementById('formBanner');
       const submitBtn = document.getElementById('submitBtn');
 
+      const REASON_MESSAGES = {
+        invalid_email: 'Enter a valid email address.',
+        password_required: 'Password is required.',
+        email_already_registered: 'That email is already registered.',
+        email_send_failed: 'Couldn’t send the confirmation email — try again shortly.',
+        internal_error: 'Something went wrong. Try again.',
+      };
+
       function showBanner(message, isError) {
         banner.textContent = message;
         banner.classList.add('visible');
@@ -82,13 +90,13 @@
 
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
 
         let valid = true;
-        if (!username) {
-          document.getElementById('username').classList.add('invalid');
-          document.getElementById('errUsername').classList.add('visible');
+        if (!email) {
+          document.getElementById('email').classList.add('invalid');
+          document.getElementById('errEmail').classList.add('visible');
           valid = false;
         }
         if (!password) {
@@ -102,29 +110,24 @@
         submitBtn.textContent = 'Creating…';
         banner.classList.remove('visible');
 
-        const registerResult = await AuthApi.register(username, password);
+        const registerResult = await AuthApi.register(email, password);
 
         if (!registerResult.ok) {
-          const reason = (registerResult.data && registerResult.data.reason) || 'Registration failed.';
-          showBanner(reason === 'username already taken' ? 'That username is already taken.' : reason, true);
+          const reason = registerResult.data && registerResult.data.reason;
+          showBanner(REASON_MESSAGES[reason] || 'Registration failed.', true);
           submitBtn.disabled = false;
           submitBtn.textContent = 'Create Account';
           return;
         }
 
-        // Registration doesn't return a token — log in immediately so we
-        // land on the dashboard with a session already in hand.
-        const loginResult = await AuthApi.login(username, password);
-        if (!loginResult.ok || !loginResult.data || !loginResult.data.token) {
-          showBanner('Account created — log in to continue.', false);
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
-          setTimeout(function () { window.location.href = 'login.html'; }, 1200);
-          return;
-        }
-
-        Session.save(loginResult.data.token);
-        window.location.href = 'dashboard.html';
+        // No token comes back, and logging in wouldn't work yet anyway —
+        // the account isn't usable until the confirmation email is
+        // clicked. Send them to log in once that's done instead of
+        // pretending this is instant.
+        form.reset();
+        showBanner('Account created — check your email for a confirmation link, then log in.', false);
+        submitBtn.textContent = 'Create Account';
+        setTimeout(function () { window.location.href = 'login.html'; }, 3000);
       });
     })();
   </script>

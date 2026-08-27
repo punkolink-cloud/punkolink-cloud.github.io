@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Punkolink — Finance</title>
+  <title>Punkolink — Billing</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,7 @@
     </a>
     <nav class="nav">
       <a href="dashboard.html">Dashboard</a>
-      <a href="finance.html" class="active">Finance</a>
+      <a href="billing.html" class="active">Billing</a>
     </nav>
     <div class="nav-user">
       <span class="nav-user-tag" id="navUserTag"></span>
@@ -35,12 +35,12 @@
     <div class="shell">
       <div class="page-head">
         <div>
-          <div class="page-tag">Billing</div>
-          <h1 class="page-title">Finance</h1>
+          <div class="page-tag">Account</div>
+          <h1 class="page-title">Billing</h1>
         </div>
       </div>
 
-      <div class="banner" id="financeBanner"></div>
+      <div class="banner" id="billingBanner"></div>
 
       <div class="stat-row">
         <div class="stat-tile">
@@ -74,6 +74,7 @@
           </div>
           <div class="package-credits"><span id="packTotal">5</span><span class="unit">credits</span></div>
           <button class="btn btn-primary btn-block" id="buyBtn">Buy</button>
+          <button class="btn btn-secondary btn-block" id="buyBtnStripe" style="margin-top: 8px;">Buy with Stripe (test)</button>
         </div>
       </div>
     </div>
@@ -85,6 +86,6 @@
 
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>
-  <script src="js/finance.js"></script>
+  <script src="js/billing.js"></script>
 </body>
 </html>

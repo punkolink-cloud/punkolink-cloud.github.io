@@ -2,7 +2,7 @@
   const session = Session.requireAuth();
   if (!session) return;
 
-  const banner = document.getElementById('financeBanner');
+  const banner = document.getElementById('billingBanner');
   const balanceValueEl = document.getElementById('balanceValue');
   const packLoading = document.getElementById('packLoading');
   const packCard = document.getElementById('packCard');
@@ -10,6 +10,7 @@
   const packQuantityEl = document.getElementById('packQuantity');
   const packTotalEl = document.getElementById('packTotal');
   const buyBtn = document.getElementById('buyBtn');
+  const buyBtnStripe = document.getElementById('buyBtnStripe');
 
   // The exact picocredit balance, as a BigInt — used only to detect
   // "did this actually go up yet", never for display (the formatted
@@ -86,6 +87,55 @@
     }
   }
 
+  /** Stripe path: the backend creates a hosted Checkout Session and hands
+   *  back its URL — we just redirect there, no Stripe.js needed. The
+   *  current raw balance is stashed before leaving so that, on return,
+   *  watchForCredit() has the balance from *before* checkout as its
+   *  baseline even if Stripe's webhook already credited it by the time
+   *  this page reloads (a real race for a full-page redirect flow, unlike
+   *  Paddle's overlay). */
+  async function openStripeCheckout() {
+    try {
+      sessionStorage.setItem('stripeCheckoutStartingBalance', startingBalanceRaw || '');
+    } catch (err) {
+      // sessionStorage unavailable — the success-page comparison below
+      // just falls back to a fresh balance reading in that case.
+    }
+
+    const result = await AuthApi.stripeCheckout(currentQuantity());
+    if (!result.ok || !result.data || !result.data.url) {
+      showBanner('Could not start Stripe checkout.', true);
+      return;
+    }
+    window.location.href = result.data.url;
+  }
+
+  /** Handles landing back on this page after a Stripe redirect (see
+   *  success_url/cancel_url in stripe_service::create_checkout_session).
+   *  Runs once per load; strips the query param afterward so a refresh
+   *  doesn't re-trigger it. */
+  function handleStripeRedirectReturn() {
+    const params = new URLSearchParams(window.location.search);
+    const stripeResult = params.get('stripe');
+    if (!stripeResult) return;
+
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (stripeResult === 'success') {
+      let stashedBalance = null;
+      try {
+        stashedBalance = sessionStorage.getItem('stripeCheckoutStartingBalance');
+        sessionStorage.removeItem('stripeCheckoutStartingBalance');
+      } catch (err) {
+        // ignore — watchForCredit() falls back to the fresh reading below
+      }
+      if (stashedBalance) startingBalanceRaw = stashedBalance;
+      watchForCredit();
+    } else if (stripeResult === 'cancel') {
+      showBanner('Checkout cancelled.', true);
+    }
+  }
+
   async function init() {
     startingBalanceRaw = await loadBalance();
     if (startingBalanceRaw === null) {
@@ -107,6 +157,12 @@
 
     packLoading.classList.add('hidden');
     packCard.classList.remove('hidden');
+
+    // Stripe's test path is wired up independently of Paddle's own
+    // config/token checks below, so it keeps working for testing even
+    // while Paddle itself is unconfigured (as it currently is).
+    buyBtnStripe.addEventListener('click', openStripeCheckout);
+    handleStripeRedirectReturn();
 
     if (!config.client_token || !packPriceId) {
       showBanner('Paddle isn’t configured yet — purchases are disabled for now.', true);

@@ -56,17 +56,20 @@ async function apiRequest(path, options) {
 }
 
 const AuthApi = {
-  register: function (username, password) {
-    return apiRequest('/register', { method: 'POST', body: { username: username, password: password } });
+  register: function (email, password) {
+    return apiRequest('/register', { method: 'POST', body: { email: email, password: password } });
   },
-  login: function (username, password) {
-    return apiRequest('/login', { method: 'POST', body: { username: username, password: password } });
+  login: function (email, password) {
+    return apiRequest('/login', { method: 'POST', body: { email: email, password: password } });
   },
   account: function (userId) {
     return apiRequest('/account/' + userId, { method: 'GET' });
   },
   paddleConfig: function () {
     return apiRequest('/paddle/config', { method: 'GET' });
+  },
+  stripeCheckout: function (quantity) {
+    return apiRequest('/stripe/checkout', { method: 'POST', body: { quantity: quantity } });
   },
 };
 

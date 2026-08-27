@@ -34,8 +34,8 @@
 
         <form id="loginForm" novalidate>
           <div class="form-group">
-            <label class="form-label" for="username">Username</label>
-            <input class="form-input" type="text" id="username" name="username" autocomplete="username" placeholder="jdoe" required>
+            <label class="form-label" for="email">Email</label>
+            <input class="form-input" type="email" id="email" name="email" autocomplete="email" placeholder="jdoe@example.com" required>
           </div>
 
           <div class="form-group">
@@ -67,24 +67,30 @@
       const banner = document.getElementById('formBanner');
       const submitBtn = document.getElementById('submitBtn');
 
+      const REASON_MESSAGES = {
+        invalid_credentials: 'Invalid email or password.',
+        email_not_verified: 'Confirm your email first — check your inbox for the link we sent.',
+      };
+
       if (Session.get()) {
         window.location.href = 'dashboard.html';
       }
 
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        if (!username || !password) return;
+        if (!email || !password) return;
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Logging in…';
         banner.classList.remove('visible');
 
-        const result = await AuthApi.login(username, password);
+        const result = await AuthApi.login(email, password);
 
         if (!result.ok || !result.data || !result.data.token) {
-          banner.textContent = 'Invalid username or password.';
+          const reason = result.data && result.data.reason;
+          banner.textContent = REASON_MESSAGES[reason] || 'Invalid email or password.';
           banner.classList.add('visible');
           banner.classList.remove('success');
           submitBtn.disabled = false;

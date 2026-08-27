@@ -1,5 +1,5 @@
 // The session is the JWT itself, stored as-is. Nothing else is kept
-// separately — username/role/user id are all read back out of the
+// separately — email/role/user id are all read back out of the
 // token's own payload, so there's nothing here that could drift out of
 // sync with what the server actually issued.
 const Session = {
@@ -29,7 +29,7 @@ const Session = {
     }
   },
 
-  /** Returns { token, userId, role, username } for a valid, unexpired
+  /** Returns { token, userId, role, email } for a valid, unexpired
    *  session, or null. */
   get: function () {
     const token = localStorage.getItem(Session.KEY);
@@ -43,7 +43,7 @@ const Session = {
       return null;
     }
 
-    return { token: token, userId: claims.sub, role: claims.role, username: claims.username };
+    return { token: token, userId: claims.sub, role: claims.role, email: claims.email };
   },
 
   clear: function () {
@@ -69,7 +69,7 @@ function renderNavUser() {
   if (!tag || !logoutBtn) return;
 
   if (session) {
-    tag.textContent = session.username + ' · ' + session.role;
+    tag.textContent = session.email + ' · ' + session.role;
     logoutBtn.classList.remove('hidden');
     logoutBtn.addEventListener('click', function (e) {
       e.preventDefault();
