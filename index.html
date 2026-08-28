@@ -3,67 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <title>Punkolink — Control Panel</title>
 
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Pure client-side redirect gate: no landing content lives here.
+       Check for a valid, unexpired session and send the visitor
+       straight on — authenticated → dashboard, otherwise → login.
+       session.js must load before the redirect script so `Session`
+       is defined; both run in <head> so nothing paints first. -->
+  <script src="js/session.js"></script>
+  <script>
+    (function () {
+      var session = Session.get();
+      // location.replace, not href: this gate must not enter history,
+      // or Back from dashboard/login would bounce straight back here.
+      window.location.replace(session ? 'dashboard.html' : 'login.html');
+    })();
+  </script>
 </head>
 <body>
-
-  <header class="header">
-    <a href="index.html" class="logo">
-      <span class="logo-dot"></span>
-      punkolink
-    </a>
-    <nav class="nav">
-      <a href="login.html">Log In</a>
-      <a href="register.html" class="btn btn-secondary btn-sm">Get Started</a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="hero-content">
-        <div class="hero-tag">
-          <span class="tag-line"></span>
-          Infrastructure, Run Yourself.
-        </div>
-        <h1 class="hero-title">
-          One Panel.<br>
-          Every Service You Run.
-        </h1>
-        <p class="hero-desc">
-          Spin up Postgres, Redis, Meilisearch, Qdrant, or your own Node.js
-          project and binaries — billed by the minute, managed from one
-          dashboard.
-        </p>
-        <div class="hero-actions">
-          <a href="register.html" class="btn btn-primary">Create Account</a>
-          <a href="login.html" class="btn btn-secondary">Log In</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="feature-strip">
-      <div class="feature-grid">
-        <div class="feature-card">
-          <h3>Managed Images</h3>
-          <p>Postgres, Redis, Meilisearch, Qdrant — pulled straight from Docker Hub, configured with your own environment variables.</p>
-        </div>
-        <div class="feature-card">
-          <h3>Your Own Code</h3>
-          <p>Upload a Node.js project as a zip, or a standalone binary. It runs in its own container, on its own port.</p>
-        </div>
-        <div class="feature-card">
-          <h3>Billed By the Minute</h3>
-          <p>5 credits/month per service, charged in small fractions every minute. Your balance is always one click away.</p>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    © 2026 Punkolink — internal control panel.
-  </footer>
-
+  <noscript>
+    <p style="padding: var(--space-6, 24px);">
+      JavaScript is required. <a href="login.html">Continue to sign in</a>.
+    </p>
+  </noscript>
 </body>
 </html>
