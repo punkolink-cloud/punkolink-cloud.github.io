@@ -1,3 +1,44 @@
+/* ── self-hosted webfonts ─────────────────────────────────────
+   IBM Plex Sans (400/600/700) + Space Mono (400/700), normal only —
+   exactly the weights this stylesheet uses. Both SIL Open Font
+   License 1.1 (see ../assets/fonts/OFL-*.txt). Served locally; no
+   external font requests. ── */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/IBMPlexSans-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/IBMPlexSans-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/SpaceMono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/SpaceMono-Bold.woff2') format('woff2');
+}
+
 /* ── design tokens ─────────────────────────────────────────────
    Adapted from the punkolink.com marketing site's visual system:
    near-black surfaces, one blue accent used only on interactive
