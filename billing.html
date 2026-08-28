@@ -9,10 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-
-  <!-- Paddle.js: must be loaded from Paddle's own CDN, it isn't
-       something that can be self-hosted. -->
-  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 </head>
 <body>
 
@@ -55,13 +51,13 @@
 
       <div class="page-head">
         <div>
-          <div class="page-tag">Paddle</div>
+          <div class="page-tag">Payment</div>
           <h2 class="page-title" style="font-size: var(--text-h2);">Buy Credits</h2>
         </div>
       </div>
 
       <div class="toolbar">
-        <div class="toolbar-info">Paid through Paddle. Credits are added automatically once the payment is confirmed — this can take a few seconds.</div>
+        <div class="toolbar-info">Paid through Stripe. Credits are added automatically once the payment is confirmed — this can take a few seconds.</div>
       </div>
 
       <div id="packSection">
@@ -74,7 +70,6 @@
           </div>
           <div class="package-credits"><span id="packTotal">5</span><span class="unit">credits</span></div>
           <button class="btn btn-primary btn-block" id="buyBtn">Buy</button>
-          <button class="btn btn-secondary btn-block" id="buyBtnStripe" style="margin-top: 8px;">Buy with Stripe (test)</button>
         </div>
       </div>
     </div>

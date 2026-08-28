@@ -65,9 +65,6 @@ const AuthApi = {
   account: function (userId) {
     return apiRequest('/account/' + userId, { method: 'GET' });
   },
-  paddleConfig: function () {
-    return apiRequest('/paddle/config', { method: 'GET' });
-  },
   stripeCheckout: function (quantity) {
     return apiRequest('/stripe/checkout', { method: 'POST', body: { quantity: quantity } });
   },
