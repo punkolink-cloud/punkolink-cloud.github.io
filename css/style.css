@@ -1001,6 +1001,178 @@ tbody tr.row-link:hover {
   margin-left: 6px;
 }
 
+/* ── workspace sidebar (Managed Services / L7 / DRP switcher) ─ */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.sidebar-toggle:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.sidebar-toggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.app-shell {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.app-shell > main {
+  min-width: 0;
+}
+
+.sidebar {
+  flex: none;
+  width: 240px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: var(--space-4) var(--space-2);
+  transition: width var(--transition), padding var(--transition);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-2);
+  white-space: nowrap;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-left: 2px solid transparent;
+  white-space: nowrap;
+  transition: color var(--transition), background-color var(--transition), border-color var(--transition);
+}
+
+.sidebar-link:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.sidebar-link.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.sidebar-link svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: block;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* collapsed — desktop only; the class is set on <html> */
+html.sidebar-collapsed .sidebar {
+  width: 60px;
+}
+
+html.sidebar-collapsed .sidebar-link {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html.sidebar-collapsed .sidebar-link-label,
+html.sidebar-collapsed .sidebar-section-label {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* below the breakpoint the panel is an off-canvas drawer, and the
+     desktop "collapsed" state no longer applies */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 400;
+    width: 264px;
+    transform: translateX(-100%);
+    transition: transform var(--transition);
+    overflow-y: auto;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  html.sidebar-collapsed .sidebar {
+    width: 264px;
+  }
+
+  html.sidebar-collapsed .sidebar-link {
+    justify-content: flex-start;
+    padding: var(--space-3);
+  }
+
+  html.sidebar-collapsed .sidebar-link-label,
+  html.sidebar-collapsed .sidebar-section-label {
+    display: block;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 399;
+    background: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition);
+  }
+
+  .sidebar-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 /* ── responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .feature-grid {

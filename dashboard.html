@@ -6,14 +6,31 @@
   <title>Punkolink — Dashboard</title>
 
   <link rel="stylesheet" href="css/style.css">
+
+  <script>
+    // Restore the collapsed-sidebar state before first paint so the panel
+    // doesn't flash open on every load.
+    try {
+      if (localStorage.getItem('punkolink_sidebar_collapsed') === '1') {
+        document.documentElement.classList.add('sidebar-collapsed');
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body>
 
   <header class="header">
-    <a href="dashboard.html" class="logo">
-      <span class="logo-dot"></span>
-      punkolink
-    </a>
+    <div class="header-left">
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle workspace panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
+      </button>
+      <a href="dashboard.html" class="logo">
+        <span class="logo-dot"></span>
+        punkolink
+      </a>
+    </div>
     <nav class="nav">
       <a href="dashboard.html" class="active">Dashboard</a>
       <a href="billing.html">Billing</a>
@@ -24,42 +41,69 @@
     </div>
   </header>
 
-  <main>
-    <div class="shell">
-      <div class="page-head">
-        <div>
-          <div class="page-tag">Control Panel</div>
-          <h1 class="page-title">Services</h1>
+  <div class="app-shell">
+    <aside class="sidebar" id="appSidebar">
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-label">Workspace</div>
+        <a class="sidebar-link active" href="dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>
+          </svg>
+          <span class="sidebar-link-label">Managed Services</span>
+        </a>
+        <a class="sidebar-link" href="l7.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M8 11l8-4M8 13l8 4"/>
+          </svg>
+          <span class="sidebar-link-label">L7</span>
+        </a>
+        <a class="sidebar-link" href="drp.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>
+          </svg>
+          <span class="sidebar-link-label">DRP</span>
+        </a>
+      </nav>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main>
+      <div class="shell">
+        <div class="page-head">
+          <div>
+            <div class="page-tag">Managed Services</div>
+            <h1 class="page-title">Services</h1>
+          </div>
+          <button class="btn btn-primary" id="addServiceBtn">+ Add Service</button>
         </div>
-        <button class="btn btn-primary" id="addServiceBtn">+ Add Service</button>
-      </div>
 
-      <div class="banner" id="dashboardBanner"></div>
+        <div class="banner" id="dashboardBanner"></div>
 
-      <div class="toolbar">
-        <div class="toolbar-info" id="serviceCount"></div>
-      </div>
+        <div class="toolbar">
+          <div class="toolbar-info" id="serviceCount"></div>
+        </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Service</th>
-              <th>Region</th>
-              <th>Hostname</th>
-              <th>Port</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="servicesBody">
-            <tr class="empty-row"><td colspan="7">Loading…</td></tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Service</th>
+                <th>Region</th>
+                <th>Hostname</th>
+                <th>Port</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="servicesBody">
+              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <footer class="footer">
     © 2026 Punkolink — internal control panel.
@@ -112,5 +156,6 @@
     Session.adoptTokenFromHash();
   </script>
   <script src="js/dashboard.js"></script>
+  <script src="js/sidebar.js"></script>
 </body>
 </html>
