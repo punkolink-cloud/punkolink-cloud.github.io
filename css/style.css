@@ -68,13 +68,19 @@
   --weight-medium: 600;
   --weight-bold: 700;
 
-  --text-display: clamp(2.5rem, 5vw, 3.5rem);
-  --text-h1: 2rem;
-  --text-h2: clamp(1.5rem, 2vw, 1.75rem);
-  --text-h3: 1.25rem;
-  --text-body: 1rem;
-  --text-secondary: 0.875rem;
-  --text-mono: 0.875rem;
+  /* Type scale — a console calibration of the site's system. Same roles
+     and font pairing, but a tighter range than the marketing pages: no
+     large display step, so an app screen reads headline → section → data
+     → label with even, moderate jumps (largest ~1.35x) instead of one
+     big drop from the title to everything else. */
+  --text-display: 1.75rem;    /* 28px — reserved; no console page uses it yet */
+  --text-h1: 1.4375rem;       /* 23px — page title (Services, Log In) */
+  --text-h2: 1.1875rem;       /* 19px — dialog title (Add Service) */
+  --text-h3: 1.0625rem;       /* 17px — block heading (Overview, Environment Variables) */
+  --text-body: 1rem;          /* 16px — prose */
+  --text-secondary: 0.875rem; /* 14px — body copy, table values, counts */
+  --text-label: 0.6875rem;    /* 11px — column headers, eyebrows, form labels */
+  --text-mono: 0.875rem;      /* 14px — mono values, sized with --text-secondary */
 
   --space-1: 4px;
   --space-2: 8px;
@@ -250,10 +256,11 @@ main {
 }
 
 /* Eyebrow above a page title — the site's .page-hero-tag / .hero-tag
-   treatment: sans, medium, 14px, .08em, uppercase, muted. */
+   treatment (sans, medium, .08em, uppercase, muted), at the console's
+   label size (--text-label, 11px) so it sits clearly below the values. */
 .page-tag {
   font-weight: var(--weight-medium);
-  font-size: var(--text-secondary);
+  font-size: var(--text-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -452,7 +459,7 @@ main {
 .form-label {
   display: block;
   font-weight: var(--weight-medium);
-  font-size: var(--text-secondary);
+  font-size: var(--text-label);
   color: var(--text-muted);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -543,7 +550,7 @@ main {
 }
 
 .auth-card-head h1 {
-  font-size: var(--text-h2);
+  font-size: var(--text-h1);
   letter-spacing: -0.01em;
   margin-bottom: var(--space-2);
 }
@@ -578,7 +585,7 @@ main {
   gap: var(--space-3);
   margin: var(--space-4) 0;
   color: var(--text-muted);
-  font-size: var(--text-secondary);
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -639,7 +646,7 @@ main {
 
 .stat-label {
   font-weight: var(--weight-medium);
-  font-size: 12px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -682,7 +689,7 @@ table {
 thead th {
   text-align: left;
   font-weight: var(--weight-medium);
-  font-size: 12px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -720,7 +727,9 @@ tbody tr.row-link:hover {
 
 .cell-mono {
   font-family: var(--font-mono);
-  color: var(--text-muted);
+  /* Full text colour, not muted — table values are the content and read
+     above the (muted, smaller) column labels. */
+  color: var(--text);
   /* If the working width is ever too tight for a value (a very long
      hostname on a small screen), break it cleanly instead of forcing the
      column wider and staggering the row. */
@@ -742,7 +751,7 @@ tbody tr.row-link:hover {
   align-items: center;
   gap: var(--space-2);
   font-weight: var(--weight-medium);
-  font-size: 12px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -853,6 +862,7 @@ tbody tr.row-link:hover {
 
 .modal-header h2 {
   font-size: var(--text-h2);
+  font-weight: var(--weight-medium);
   letter-spacing: -0.01em;
   margin-bottom: var(--space-2);
 }
@@ -877,13 +887,14 @@ tbody tr.row-link:hover {
   margin-bottom: var(--space-4);
 }
 
+/* "Overview" / "Actions" are block headings, same tier as
+   "Environment Variables" (.section-card h3) — the mid step between the
+   page title and the data, not an eyebrow. */
 .detail-card h3 {
-  font-size: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: var(--space-3);
+  font-size: var(--text-h3);
   font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-3);
 }
 
 .kv-list {
@@ -946,6 +957,7 @@ tbody tr.row-link:hover {
 
 .section-card h3 {
   font-size: var(--text-h3);
+  font-weight: var(--weight-medium);
   letter-spacing: -0.01em;
   margin-bottom: var(--space-1);
 }
@@ -960,7 +972,7 @@ tbody tr.row-link:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-secondary);
+  font-size: var(--text-label);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1013,7 +1025,7 @@ tbody tr.row-link:hover {
 }
 
 .package-label {
-  font-size: var(--text-secondary);
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -1092,7 +1104,7 @@ tbody tr.row-link:hover {
 
 .sidebar-section-label {
   font-weight: var(--weight-medium);
-  font-size: 12px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
