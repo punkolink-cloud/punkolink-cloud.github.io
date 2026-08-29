@@ -104,6 +104,13 @@
 
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>
+  <script>
+    // Google sign-in returns here (POST_LOGIN_REDIRECT) with the JWT in
+    // the URL fragment (#token=…). Adopt + scrub it BEFORE dashboard.js
+    // runs its Session.requireAuth() check — otherwise the just-signed-in
+    // user is bounced to login before the token is ever read.
+    Session.adoptTokenFromHash();
+  </script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

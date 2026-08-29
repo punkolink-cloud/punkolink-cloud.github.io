@@ -16,6 +16,11 @@
   <script src="js/session.js"></script>
   <script>
     (function () {
+      // Google sign-in can land here with the JWT in the URL fragment
+      // (#token=…) when POST_LOGIN_REDIRECT points at this router.
+      // Adopt + scrub it before the session check, so the gate forwards
+      // the just-authenticated visitor to the dashboard, not to login.
+      Session.adoptTokenFromHash();
       var session = Session.get();
       // location.replace, not href: this gate must not enter history,
       // or Back from dashboard/login would bounce straight back here.

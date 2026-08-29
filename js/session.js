@@ -9,6 +9,37 @@ const Session = {
     localStorage.setItem(Session.KEY, token);
   },
 
+  /** Google sign-in sends the user back to POST_LOGIN_REDIRECT with the
+   *  freshly issued punkolink JWT in the URL *fragment* (`#token=<JWT>`).
+   *  Call this once, early, on whichever page that redirect lands on:
+   *  it stores the token via Session.save and then scrubs the fragment
+   *  from the address bar and history so the JWT never lingers there.
+   *  Must run BEFORE any Session.get()/requireAuth() check, or a
+   *  just-authenticated visitor is bounced to login before the token is
+   *  ever read. Returns true if a token was adopted. */
+  adoptTokenFromHash: function () {
+    const hash = window.location.hash || '';
+    if (hash.indexOf('token=') === -1) return false;
+
+    const params = new URLSearchParams(hash.charAt(0) === '#' ? hash.slice(1) : hash);
+    const token = params.get('token');
+    if (!token) return false;
+
+    Session.save(token);
+
+    // Rebuild the URL without the token fragment. replaceState keeps
+    // this out of history so Back can't resurface the JWT.
+    params.delete('token');
+    const rest = params.toString();
+    const clean = window.location.pathname + window.location.search + (rest ? '#' + rest : '');
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', clean);
+    } else {
+      window.location.hash = '';
+    }
+    return true;
+  },
+
   /** Decodes a JWT's payload without verifying its signature — fine for
    *  display purposes; every real check happens server-side. */
   decode: function (token) {

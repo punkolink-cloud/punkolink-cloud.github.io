@@ -547,6 +547,36 @@ main {
   color: var(--accent-dark);
 }
 
+/* "or" rule between the email/password form and the Google button */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  color: var(--text-muted);
+  font-size: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Google sign-in / sign-up button — a plain link to the backend's
+   /auth/google/start, styled with the site's own button system. No
+   external Google widget or script; the Google UI appears only after
+   the redirect, on Google's side. */
+.btn-google .btn-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
 .banner {
   display: none;
   padding: var(--space-3) var(--space-4);
