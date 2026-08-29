@@ -31,7 +31,7 @@
 
     tr.innerHTML =
       '<td>' + escapeHtml(service.custom_name || service.service_name) + '</td>' +
-      '<td><span class="chip">' + escapeHtml(service.service_name) + ' · ' + escapeHtml(serviceType(service.service_name)) + '</span></td>' +
+      '<td class="cell-mono">' + escapeHtml(service.service_name) + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.region || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.port != null ? String(service.port) : '—') + '</td>' +

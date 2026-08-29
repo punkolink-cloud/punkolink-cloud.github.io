@@ -225,6 +225,21 @@ main {
   padding: var(--space-16) var(--space-4);
 }
 
+/* Services page only: the content area spans the full working width —
+   like the L7 Routes table, which lives in a flex .main with no centered
+   max-width cap. The sidebar already takes its share of .app-shell; this
+   just stops .shell from re-narrowing what's left. */
+.shell.shell-full {
+  max-width: none;
+  padding: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .shell.shell-full {
+    padding: var(--space-4) var(--space-3);
+  }
+}
+
 .page-head {
   display: flex;
   flex-wrap: wrap;
@@ -655,6 +670,11 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-secondary);
+  /* Floor sized so every column — hostname included — gets one clean
+     line. Wider viewports let the table grow past it; narrower ones make
+     the .table-wrap (not the document) scroll, keeping rows one-line
+     instead of staggered. Same idea as L7's .table min-width. */
+  min-width: 1180px;
 }
 
 /* Column headers are labels, not data — sans eyebrow like the rest, not
@@ -667,13 +687,13 @@ thead th {
   letter-spacing: 0.08em;
   color: var(--text-muted);
   background: var(--surface-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 tbody td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -701,6 +721,10 @@ tbody tr.row-link:hover {
 .cell-mono {
   font-family: var(--font-mono);
   color: var(--text-muted);
+  /* If the working width is ever too tight for a value (a very long
+     hostname on a small screen), break it cleanly instead of forcing the
+     column wider and staggering the row. */
+  overflow-wrap: anywhere;
 }
 
 .empty-row td {
@@ -712,6 +736,7 @@ tbody tr.row-link:hover {
 /* ── status / chips ─────────────────────────────────────────── */
 /* A word ("active" / "stopped"), so sans eyebrow, not mono. The dot
    carries the state colour. */
+
 .status {
   display: inline-flex;
   align-items: center;
@@ -743,9 +768,7 @@ tbody tr.row-link:hover {
   background: var(--text-muted);
 }
 
-/* Service-type label ("postgres · Managed Image"). The site's kind label
-   for building blocks (.blockreel-kind: "Hosted" / "Built by us") — a bare
-   mono micro-caps line, muted, no box. */
+/* Service-type label ... no box. */
 .chip {
   display: inline-block;
   font-family: var(--font-mono);
