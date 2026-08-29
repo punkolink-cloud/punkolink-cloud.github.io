@@ -40,9 +40,12 @@
 }
 
 /* ── design tokens ─────────────────────────────────────────────
-   Adapted from the punkolink.com marketing site's visual system:
-   near-black surfaces, one blue accent used only on interactive
-   elements, IBM Plex Sans + Space Mono, sharp corners, 8px grid. ── */
+   Inherited from the punkolink.com marketing site (punkolink_com/styles.css):
+   the palette hexes, the type scale, the font roles (Space Mono only on
+   machine values, IBM Plex Sans on everything structural), the eyebrow
+   treatment, the button system and the 8px grid are copied from there so
+   the site and console read as one product. Values are kept in sync by
+   hand — the two projects do not share a stylesheet. ── */
 :root {
   --bg: #080808;
   --surface: #0f0f0f;
@@ -65,7 +68,7 @@
   --weight-medium: 600;
   --weight-bold: 700;
 
-  --text-display: clamp(2.25rem, 5vw, 3.25rem);
+  --text-display: clamp(2.5rem, 5vw, 3.5rem);
   --text-h1: 2rem;
   --text-h2: clamp(1.5rem, 2vw, 1.75rem);
   --text-h3: 1.25rem;
@@ -160,7 +163,7 @@ a {
   align-items: center;
   gap: var(--space-2);
   font-weight: var(--weight-bold);
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   letter-spacing: -0.01em;
 }
 
@@ -196,12 +199,13 @@ a {
   gap: var(--space-4);
 }
 
+/* Identity string ("you@example.com · admin") — reads as data, but it's an
+   email, not a machine token, so it follows the site's neutral sans meta
+   text (.footer-copy), not mono. */
 .nav-user-tag {
-  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 
 /* ── layout shells ──────────────────────────────────────────── */
@@ -230,10 +234,12 @@ main {
   margin-bottom: var(--space-6);
 }
 
+/* Eyebrow above a page title — the site's .page-hero-tag / .hero-tag
+   treatment: sans, medium, 14px, .08em, uppercase, muted. */
 .page-tag {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.15em;
+  font-weight: var(--weight-medium);
+  font-size: var(--text-secondary);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: var(--space-2);
@@ -407,9 +413,11 @@ main {
   color: var(--text);
 }
 
+/* One button size on the site — the "small" role only trims padding, it
+   keeps the 14px type (cf. the site's .nav-cta: 6px 14px @ 14px). */
 .btn-sm {
-  padding: 8px 14px;
-  font-size: 12px;
+  padding: 6px var(--space-3);
+  font-size: var(--text-secondary);
 }
 
 .btn:disabled {
@@ -486,7 +494,7 @@ main {
 .form-error {
   display: none;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--text-secondary);
   color: var(--danger);
 }
 
@@ -521,6 +529,7 @@ main {
 
 .auth-card-head h1 {
   font-size: var(--text-h2);
+  letter-spacing: -0.01em;
   margin-bottom: var(--space-2);
 }
 
@@ -556,7 +565,7 @@ main {
   color: var(--text-muted);
   font-size: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .auth-divider::before,
@@ -608,21 +617,13 @@ main {
   padding: var(--space-4);
   background: var(--surface);
   border: 1px solid var(--border);
-  position: relative;
 }
 
-.stat-tile::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--accent);
-}
+/* Site cards are a plain hairline box — no top accent bar (accent is for
+   interactive/active states only). */
 
 .stat-label {
-  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -631,7 +632,7 @@ main {
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: var(--text-h1);
   font-weight: var(--weight-bold);
   letter-spacing: -0.01em;
 }
@@ -656,12 +657,14 @@ table {
   font-size: var(--text-secondary);
 }
 
+/* Column headers are labels, not data — sans eyebrow like the rest, not
+   mono. */
 thead th {
   text-align: left;
-  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   background: var(--surface-2);
   padding: var(--space-3) var(--space-4);
@@ -690,7 +693,7 @@ tbody tr.row-link:hover {
 
 .cell-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
   white-space: nowrap;
 }
@@ -707,14 +710,16 @@ tbody tr.row-link:hover {
 }
 
 /* ── status / chips ─────────────────────────────────────────── */
+/* A word ("active" / "stopped"), so sans eyebrow, not mono. The dot
+   carries the state colour. */
 .status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
+  gap: var(--space-2);
+  font-weight: var(--weight-medium);
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 
@@ -738,12 +743,15 @@ tbody tr.row-link:hover {
   background: var(--text-muted);
 }
 
+/* Service-type label ("postgres · Managed Image"). The site's kind label
+   for building blocks (.blockreel-kind: "Hosted" / "Built by us") — a bare
+   mono micro-caps line, muted, no box. */
 .chip {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
@@ -822,6 +830,7 @@ tbody tr.row-link:hover {
 
 .modal-header h2 {
   font-size: var(--text-h2);
+  letter-spacing: -0.01em;
   margin-bottom: var(--space-2);
 }
 
@@ -848,7 +857,7 @@ tbody tr.row-link:hover {
 .detail-card h3 {
   font-size: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   margin-bottom: var(--space-3);
   font-weight: var(--weight-medium);
@@ -914,6 +923,7 @@ tbody tr.row-link:hover {
 
 .section-card h3 {
   font-size: var(--text-h3);
+  letter-spacing: -0.01em;
   margin-bottom: var(--space-1);
 }
 
@@ -927,7 +937,7 @@ tbody tr.row-link:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--text-secondary);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -982,19 +992,17 @@ tbody tr.row-link:hover {
 .package-label {
   font-size: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   font-weight: var(--weight-medium);
 }
 
 .package-credits {
-  font-family: var(--font-mono);
   font-size: var(--text-h1);
   font-weight: var(--weight-bold);
 }
 
 .package-credits .unit {
-  font-family: var(--font-sans);
   font-size: var(--text-secondary);
   font-weight: var(--weight-regular);
   color: var(--text-muted);
@@ -1060,10 +1068,10 @@ tbody tr.row-link:hover {
 }
 
 .sidebar-section-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-weight: var(--weight-medium);
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   padding: 0 var(--space-3);
   margin-bottom: var(--space-2);
@@ -1079,7 +1087,7 @@ tbody tr.row-link:hover {
   font-size: var(--text-secondary);
   font-weight: var(--weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   border-left: 2px solid transparent;
   white-space: nowrap;
   transition: color var(--transition), background-color var(--transition), border-color var(--transition);
