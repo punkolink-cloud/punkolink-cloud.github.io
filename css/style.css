@@ -833,7 +833,7 @@ tbody tr.row-link:hover {
 /* ── detail page ────────────────────────────────────────────── */
 .detail-grid {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: var(--space-6);
   align-items: start;
 }
@@ -879,6 +879,24 @@ tbody tr.row-link:hover {
 .kv-val {
   font-family: var(--font-mono);
   text-align: right;
+}
+
+/* Overview card sits in the narrow left column, so its long technical
+   values — hostname, instance id — can't fit on the label's line and
+   were being clipped / pushed past the card edge. Stack the value under
+   its label to give it the card's full width, and let unbreakable
+   strings wrap instead of overflowing. Scoped to .detail-card so the
+   Payload kv-list (wide right column) is left as-is. */
+.detail-card .kv-row {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detail-card .kv-val {
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .detail-actions {
