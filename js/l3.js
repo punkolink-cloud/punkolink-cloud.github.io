@@ -8,6 +8,9 @@
   const countEl = document.getElementById('ipCount');
   const rentBtn = document.getElementById('rentBtn');
 
+  // Keep in step with auth's IP_PRICE_PER_MINUTE_PICOCREDITS — display only.
+  const RATE_PER_MINUTE = '0.0000462963';
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
@@ -49,14 +52,11 @@
 
   function renderRow(ip) {
     const tr = document.createElement('tr');
-    const active = ip.status === 'active';
 
     tr.innerHTML =
       '<td class="cell-mono">' + escapeHtml(ip.address) + '</td>' +
       '<td class="cell-mono">' + escapeHtml(ip.region || '—') + '</td>' +
-      '<td><span class="status ' + (active ? 'is-active' : 'is-stopped') + '">' +
-        '<span class="status-dot"></span>' + escapeHtml(ip.status) + '</span></td>' +
-      '<td class="cell-mono">' + escapeHtml(shortTime(ip.created_at)) + '</td>' +
+      '<td class="cell-mono">' + escapeHtml(shortTime(ip.assigned_at)) + '</td>' +
       '<td class="cell-actions"></td>';
 
     const releaseBtn = document.createElement('button');
@@ -76,13 +76,8 @@
 
     const result = await L3Api.list(session.userId, region);
     if (!result.ok) {
-      const reason = (result.data && result.data.reason) || '';
       tbody.innerHTML =
-        '<tr class="empty-row"><td colspan="5">' +
-        (reason === 'drp_unreachable'
-          ? 'Address pool is unreachable right now.'
-          : 'Couldn’t load addresses.') +
-        '</td></tr>';
+        '<tr class="empty-row"><td colspan="4">Couldn’t load addresses.</td></tr>';
       countEl.textContent = '';
       rentBtn.disabled = true;
       return;
@@ -94,14 +89,14 @@
 
     countEl.textContent =
       addresses.length +
-      (addresses.length === 1 ? ' address rented' : ' addresses rented') +
-      (available != null ? ' · ' + available + ' available in region' : '');
+      (addresses.length === 1 ? ' address held' : ' addresses held') +
+      (available != null ? ' · ' + available + ' free in region' : '');
 
     rentBtn.disabled = !(currentRegion() && available > 0);
 
     if (addresses.length === 0) {
       tbody.innerHTML =
-        '<tr class="empty-row"><td colspan="5">No addresses rented yet.</td></tr>';
+        '<tr class="empty-row"><td colspan="4">No addresses held here yet.</td></tr>';
       return;
     }
 
@@ -115,8 +110,20 @@
     const region = currentRegion();
     if (!region) return;
 
+    if (
+      !window.confirm(
+        'Bind a free IPv6 address in ' +
+          region +
+          ' to your account?\n\nBilling starts at the next minute tick, ' +
+          RATE_PER_MINUTE +
+          ' credits/minute, until you release it.'
+      )
+    ) {
+      return;
+    }
+
     rentBtn.disabled = true;
-    rentBtn.textContent = 'Renting…';
+    rentBtn.textContent = 'Binding…';
     hideBanner();
 
     const result = await L3Api.rent(session.userId, region);
@@ -124,14 +131,15 @@
     rentBtn.textContent = 'Rent Address';
 
     if (!result.ok) {
-      const reason = (result.data && result.data.reason) || 'Failed to rent an address.';
-      const message =
+      const reason = (result.data && result.data.reason) || 'Failed to bind an address.';
+      showBanner(
         reason === 'no_addresses_available'
-          ? 'No addresses available in this region.'
-          : reason === 'drp_unreachable'
-          ? 'Address pool is unreachable right now.'
-          : reason;
-      showBanner(message, true);
+          ? 'No free addresses in this region.'
+          : reason === 'unknown_region'
+          ? 'That region is not known.'
+          : reason,
+        true
+      );
       rentBtn.disabled = false;
       return;
     }
