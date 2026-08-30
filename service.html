@@ -111,20 +111,21 @@
 
             <div class="section-card">
               <h3>Networking</h3>
-              <p class="section-desc">By default the container is reachable only through this node's address, on an automatically assigned port. Set a custom IP (e.g. one you rent under <code>L3</code>) to publish it on that address instead — then the port is yours to choose.</p>
+              <p class="section-desc">By default the container is reachable only through this node's address, on an automatically assigned port. Point it at an IPv6 address you rent under <a href="l3.html">L3</a> in this service's region to publish it there instead — then you set the port.</p>
               <form id="networkForm">
-                <div class="form-group">
-                  <label class="form-label" for="customIpInput">Custom IP <span class="optional">(optional)</span></label>
-                  <input class="form-input" type="text" id="customIpInput" placeholder="2001:db8::10">
+                <div class="form-group" id="customIpGroup">
+                  <label class="form-label" for="customIpSelect">Address</label>
+                  <select class="form-select" id="customIpSelect"></select>
                 </div>
+                <p class="form-hint hidden" id="customIpHint"></p>
                 <div class="form-group">
                   <label class="form-label" for="customPortInput">Port</label>
                   <input class="form-input" type="number" id="customPortInput" min="1" max="65535" disabled>
                   <span class="form-error" id="networkError"></span>
-                  <p class="form-hint">Editable only with a custom IP set. Leave the IP blank to go back to the default address and automatic port.</p>
+                  <p class="form-hint">Editable once an address is chosen. Pick “Default” to go back to the node address and an automatic port.</p>
                 </div>
                 <div class="form-actions">
-                  <button type="submit" class="btn btn-primary btn-sm">Save Networking</button>
+                  <button type="submit" class="btn btn-primary btn-sm" id="networkSubmit">Save Networking</button>
                 </div>
               </form>
             </div>

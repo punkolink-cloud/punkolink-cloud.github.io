@@ -12,6 +12,14 @@
   const detailBanner = document.getElementById('detailBanner');
 
   let current = null;
+  let allServices = [];
+  let heldAddresses = [];
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
 
   function showBanner(message, isError) {
     detailBanner.textContent = message;
@@ -49,11 +57,7 @@
     document.getElementById('envText').value = envMapToText(service.env_vars);
     document.getElementById('onExitSelect').value = service.on_exit || 'restart';
 
-    const customIpInput = document.getElementById('customIpInput');
-    const customPortInput = document.getElementById('customPortInput');
-    customIpInput.value = service.custom_ip || '';
-    customPortInput.value = service.port != null ? service.port : '';
-    syncPortField();
+    renderNetworking(service);
 
     document.getElementById('payloadSection').classList.toggle('hidden', !isRunService);
     const payloadInfo = document.getElementById('payloadInfo');
@@ -76,8 +80,8 @@
       return;
     }
 
-    const services = (result.data && result.data.services) || [];
-    const service = services.filter(function (s) { return String(s.id) === String(serviceId); })[0];
+    allServices = (result.data && result.data.services) || [];
+    const service = allServices.filter(function (s) { return String(s.id) === String(serviceId); })[0];
 
     if (!service) {
       loadingState.classList.add('hidden');
@@ -85,7 +89,67 @@
       return;
     }
 
+    // The custom-IP picker offers the addresses this user rents in the
+    // service's region. A failure here just leaves the picker empty.
+    const l3 = await L3Api.list(session.userId, service.region || '');
+    heldAddresses = (l3.ok && l3.data && l3.data.addresses) || [];
+
     render(service);
+  }
+
+  // The Networking card: pick a rented L3 address in this region, or
+  // Default. Only user_id-side change is which address (+ manual port);
+  // the address list itself is operator-managed.
+  function renderNetworking(service) {
+    const group = document.getElementById('customIpGroup');
+    const hintEl = document.getElementById('customIpHint');
+    const select = document.getElementById('customIpSelect');
+    const portInput = document.getElementById('customPortInput');
+
+    portInput.value = service.port != null ? service.port : '';
+
+    const inRegion = heldAddresses.filter(function (a) { return a.region === service.region; });
+
+    // addresses already bound to another of this user's services
+    const usedBy = {};
+    allServices.forEach(function (s) {
+      if (String(s.id) !== String(service.id) && s.custom_ip) {
+        usedBy[s.custom_ip] = s.custom_name || s.service_name;
+      }
+    });
+
+    if (inRegion.length === 0 && !service.custom_ip) {
+      group.classList.add('hidden');
+      hintEl.classList.remove('hidden');
+      hintEl.innerHTML =
+        'No rented addresses in ' +
+        escapeHtml(service.region || 'this region') +
+        '. Rent one under <a href="l3.html">L3</a> and it shows up here.';
+      portInput.disabled = true;
+      return;
+    }
+
+    group.classList.remove('hidden');
+    hintEl.classList.add('hidden');
+
+    const seen = {};
+    let opts = '<option value="">Default — node address, automatic port</option>';
+    inRegion.forEach(function (a) {
+      seen[a.address] = true;
+      const used = usedBy[a.address];
+      opts +=
+        '<option value="' + escapeHtml(a.address) + '"' + (used ? ' disabled' : '') + '>' +
+        escapeHtml(a.address) + (used ? ' — in use by ' + escapeHtml(used) : '') +
+        '</option>';
+    });
+    if (service.custom_ip && !seen[service.custom_ip]) {
+      opts +=
+        '<option value="' + escapeHtml(service.custom_ip) + '">' +
+        escapeHtml(service.custom_ip) + ' — not currently rented</option>';
+    }
+    select.innerHTML = opts;
+    select.value = service.custom_ip || '';
+    syncPortField();
   }
 
   document.getElementById('toggleBtn').addEventListener('click', async function () {
@@ -153,27 +217,27 @@
     showBanner('Settings saved.', false);
   });
 
-  // The manual port only applies with a custom IP; keep the field in step.
+  // The manual port only applies once an address is chosen.
   function syncPortField() {
-    const hasCustomIp = document.getElementById('customIpInput').value.trim() !== '';
-    document.getElementById('customPortInput').disabled = !hasCustomIp;
+    const hasAddress = document.getElementById('customIpSelect').value !== '';
+    document.getElementById('customPortInput').disabled = !hasAddress;
   }
 
-  document.getElementById('customIpInput').addEventListener('input', syncPortField);
+  document.getElementById('customIpSelect').addEventListener('change', syncPortField);
 
   document.getElementById('networkForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const errEl = document.getElementById('networkError');
     errEl.classList.remove('visible');
 
-    const customIp = document.getElementById('customIpInput').value.trim();
+    const customIp = document.getElementById('customIpSelect').value;
     const portRaw = document.getElementById('customPortInput').value.trim();
     let port = null;
 
     if (customIp) {
       port = parseInt(portRaw, 10);
       if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        errEl.textContent = 'A custom IP needs a port between 1 and 65535.';
+        errEl.textContent = 'Pick a port between 1 and 65535 for this address.';
         errEl.classList.add('visible');
         return;
       }
@@ -187,13 +251,19 @@
       port
     );
     if (!result.ok) {
-      showBanner((result.data && result.data.reason) || 'Failed to save networking.', true);
+      const reason = (result.data && result.data.reason) || '';
+      showBanner(
+        reason === 'address_not_rented'
+          ? 'That address isn’t one you rent in this region anymore. Pick another, or Default.'
+          : reason || 'Failed to save networking.',
+        true
+      );
       return;
     }
     showBanner(
       customIp
         ? 'Networking saved. It takes effect on the next launch — turn the service off and on.'
-        : 'Custom IP cleared — back to the default address and automatic port.',
+        : 'Back to the node address and an automatic port.',
       false
     );
     load();
