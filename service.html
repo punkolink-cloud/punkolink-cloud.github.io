@@ -108,6 +108,26 @@
                 </div>
               </form>
             </div>
+
+            <div class="section-card">
+              <h3>Networking</h3>
+              <p class="section-desc">By default the container is reachable only through this node's address, on an automatically assigned port. Set a custom IP (e.g. one you rent under <code>L3</code>) to publish it on that address instead — then the port is yours to choose.</p>
+              <form id="networkForm">
+                <div class="form-group">
+                  <label class="form-label" for="customIpInput">Custom IP <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="customIpInput" placeholder="2001:db8::10">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="customPortInput">Port</label>
+                  <input class="form-input" type="number" id="customPortInput" min="1" max="65535" disabled>
+                  <span class="form-error" id="networkError"></span>
+                  <p class="form-hint">Editable only with a custom IP set. Leave the IP blank to go back to the default address and automatic port.</p>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary btn-sm">Save Networking</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>

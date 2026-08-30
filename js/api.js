@@ -101,6 +101,12 @@ const BackendApi = {
   setSettings: function (serviceName, userId, id, onExit) {
     return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: { on_exit: onExit } });
   },
+  setNetwork: function (serviceName, userId, id, customIp, port) {
+    return apiRequest('/network/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, {
+      method: 'POST',
+      body: { custom_ip: customIp || null, port: port != null ? Number(port) : null },
+    });
+  },
   uploadPayload: function (serviceName, userId, id, file) {
     const formData = new FormData();
     formData.append('file', file);

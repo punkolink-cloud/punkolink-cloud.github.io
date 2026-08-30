@@ -49,6 +49,12 @@
     document.getElementById('envText').value = envMapToText(service.env_vars);
     document.getElementById('onExitSelect').value = service.on_exit || 'restart';
 
+    const customIpInput = document.getElementById('customIpInput');
+    const customPortInput = document.getElementById('customPortInput');
+    customIpInput.value = service.custom_ip || '';
+    customPortInput.value = service.port != null ? service.port : '';
+    syncPortField();
+
     document.getElementById('payloadSection').classList.toggle('hidden', !isRunService);
     const payloadInfo = document.getElementById('payloadInfo');
     if (service.payload) {
@@ -145,6 +151,52 @@
       return;
     }
     showBanner('Settings saved.', false);
+  });
+
+  // The manual port only applies with a custom IP; keep the field in step.
+  function syncPortField() {
+    const hasCustomIp = document.getElementById('customIpInput').value.trim() !== '';
+    document.getElementById('customPortInput').disabled = !hasCustomIp;
+  }
+
+  document.getElementById('customIpInput').addEventListener('input', syncPortField);
+
+  document.getElementById('networkForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const errEl = document.getElementById('networkError');
+    errEl.classList.remove('visible');
+
+    const customIp = document.getElementById('customIpInput').value.trim();
+    const portRaw = document.getElementById('customPortInput').value.trim();
+    let port = null;
+
+    if (customIp) {
+      port = parseInt(portRaw, 10);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        errEl.textContent = 'A custom IP needs a port between 1 and 65535.';
+        errEl.classList.add('visible');
+        return;
+      }
+    }
+
+    const result = await BackendApi.setNetwork(
+      current.service_name,
+      session.userId,
+      current.id,
+      customIp || null,
+      port
+    );
+    if (!result.ok) {
+      showBanner((result.data && result.data.reason) || 'Failed to save networking.', true);
+      return;
+    }
+    showBanner(
+      customIp
+        ? 'Networking saved. It takes effect on the next launch — turn the service off and on.'
+        : 'Custom IP cleared — back to the default address and automatic port.',
+      false
+    );
+    load();
   });
 
   if (!serviceId) {
