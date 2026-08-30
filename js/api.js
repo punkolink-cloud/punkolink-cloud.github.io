@@ -98,8 +98,8 @@ const BackendApi = {
   setEnv: function (serviceName, userId, id, envText) {
     return apiRequest('/env/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: envText, raw: true, headers: { 'Content-Type': 'text/plain' } });
   },
-  setSettings: function (serviceName, userId, id, onExit) {
-    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: { on_exit: onExit } });
+  setSettings: function (serviceName, userId, id, onExit, startCommand) {
+    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: { on_exit: onExit, start_command: startCommand || null } });
   },
   setNetwork: function (serviceName, userId, id, customIp, port) {
     return apiRequest('/network/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, {

@@ -57,6 +57,11 @@
     document.getElementById('envText').value = envMapToText(service.env_vars);
     document.getElementById('onExitSelect').value = service.on_exit || 'restart';
 
+    // The start-command override only makes sense for the DRP tiers,
+    // where the payload — and therefore what to run — is user-supplied.
+    document.getElementById('startCommandGroup').classList.toggle('hidden', !isRunService);
+    document.getElementById('startCommandInput').value = service.start_command || '';
+
     renderNetworking(service);
 
     document.getElementById('payloadSection').classList.toggle('hidden', !isRunService);
@@ -209,7 +214,9 @@
   document.getElementById('settingsForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const onExit = document.getElementById('onExitSelect').value;
-    const result = await BackendApi.setSettings(current.service_name, session.userId, current.id, onExit);
+    const isRunService = RUN_SERVICES.indexOf(current.service_name) !== -1;
+    const startCommand = isRunService ? document.getElementById('startCommandInput').value.trim() : '';
+    const result = await BackendApi.setSettings(current.service_name, session.userId, current.id, onExit, startCommand);
     if (!result.ok) {
       showBanner((result.data && result.data.reason) || 'Failed to save settings.', true);
       return;
@@ -263,7 +270,7 @@
     showBanner(
       customIp
         ? 'Networking saved. It takes effect on the next launch — turn the service off and on.'
-        : 'Back to the node address and an automatic port.',
+        : 'Back to the node address; a fresh automatic port was assigned. Restart to apply.',
       false
     );
     load();

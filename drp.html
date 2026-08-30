@@ -74,17 +74,38 @@
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main>
-      <div class="shell">
+      <div class="shell shell-full">
         <div class="page-head">
           <div>
             <div class="page-tag">Workspace</div>
             <h1 class="page-title">DRP</h1>
           </div>
+          <button class="btn btn-primary" id="addContainerBtn">+ Add Container</button>
         </div>
 
-        <div class="section-card">
-          <h3>Not available yet</h3>
-          <p class="section-desc">Control for the Docker Run Platform will live in this section. It's a placeholder for now — the switcher on the left is what's being wired up first.</p>
+        <div class="banner" id="drpBanner"></div>
+
+        <div class="toolbar">
+          <div class="toolbar-info" id="containerCount"></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Tier</th>
+                <th>Region</th>
+                <th>Hostname</th>
+                <th>Port</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="containersBody">
+              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
@@ -94,9 +115,47 @@
     © 2026 Punkolink — internal control panel.
   </footer>
 
+  <!-- Add container modal -->
+  <div class="modal-backdrop" id="addContainerModal" role="dialog" aria-modal="true" aria-labelledby="addContainerTitle">
+    <div class="modal">
+      <button class="modal-close" id="addContainerClose" aria-label="Close">&times;</button>
+      <div class="modal-header">
+        <h2 id="addContainerTitle">Add Container</h2>
+        <p>5 credits/month, billed once a minute starting at the next tick.</p>
+      </div>
+
+      <div class="banner" id="addContainerBanner"></div>
+
+      <form id="addContainerForm">
+        <div class="form-group">
+          <label class="form-label" for="tierSelect">Tier</label>
+          <select class="form-select" id="tierSelect" required></select>
+          <p class="form-hint">The tier sets the container's hard memory ceiling.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="containerRegionSelect">Region</label>
+          <select class="form-select" id="containerRegionSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="containerNameInput">Name <span class="optional">(optional)</span></label>
+          <input class="form-input" type="text" id="containerNameInput" placeholder="e.g. api-worker">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="containerEnvInput">Environment Variables <span class="optional">(optional)</span></label>
+          <textarea class="form-textarea" id="containerEnvInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
+          <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block" id="addContainerSubmit">Create</button>
+        </div>
+      </form>
+      <p class="form-hint" style="margin-top: var(--space-3);">After it's created, open the container and upload a binary or a zipped Node.js project from its page.</p>
+    </div>
+  </div>
+
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>
-  <script>Session.requireAuth();</script>
+  <script src="js/drp.js"></script>
   <script src="js/sidebar.js"></script>
 </body>
 </html>

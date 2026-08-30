@@ -2,10 +2,24 @@
   const session = Session.requireAuth();
   if (!session) return;
 
-  const RUN_SERVICES = ['run-medium', 'run-micro'];
+  // The DRP section is the home for run-micro/run-medium instances: the
+  // user brings their own payload (a binary or a zipped Node.js project),
+  // uploaded on the container's page after it's created.
+  const RUN_SERVICES = ['run-micro', 'run-medium'];
 
-  function serviceType(name) {
-    return RUN_SERVICES.indexOf(name) !== -1 ? 'Compute' : 'Managed Image';
+  const TIER_LABELS = {
+    'run-micro': 'micro · 128 MB',
+    'run-medium': 'medium · 256 MB',
+  };
+
+  function tierLabel(name) {
+    return TIER_LABELS[name] || name;
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
   }
 
   function showBanner(el, message, isError) {
@@ -18,9 +32,9 @@
     el.classList.remove('visible');
   }
 
-  const tbody = document.getElementById('servicesBody');
-  const countEl = document.getElementById('serviceCount');
-  const dashboardBanner = document.getElementById('dashboardBanner');
+  const tbody = document.getElementById('containersBody');
+  const countEl = document.getElementById('containerCount');
+  const drpBanner = document.getElementById('drpBanner');
 
   function renderRow(service) {
     const tr = document.createElement('tr');
@@ -31,7 +45,7 @@
 
     tr.innerHTML =
       '<td>' + escapeHtml(service.custom_name || service.service_name) + '</td>' +
-      '<td class="cell-mono">' + escapeHtml(service.service_name) + '</td>' +
+      '<td class="cell-mono">' + escapeHtml(tierLabel(service.service_name)) + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.region || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.port != null ? String(service.port) : '—') + '</td>' +
@@ -66,21 +80,15 @@
     return tr;
   }
 
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, function (ch) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-    });
-  }
-
   async function toggleService(service, button) {
     button.disabled = true;
     const action = service.status === 'active' ? BackendApi.stopService : BackendApi.launchService;
     const result = await action(service.service_name, session.userId, service.id);
     if (!result.ok) {
       const reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
-      showBanner(dashboardBanner, reason, true);
+      showBanner(drpBanner, reason, true);
     }
-    loadServices();
+    loadContainers();
   }
 
   async function deleteService(service, row) {
@@ -88,31 +96,32 @@
     row.style.opacity = '0.5';
     const result = await BackendApi.deleteService(service.service_name, session.userId, service.id);
     if (!result.ok) {
-      showBanner(dashboardBanner, 'Failed to delete service.', true);
+      showBanner(drpBanner, 'Failed to delete container.', true);
       row.style.opacity = '';
       return;
     }
-    loadServices();
+    loadContainers();
   }
 
-  async function loadServices() {
-    hideBanner(dashboardBanner);
+  async function loadContainers() {
+    hideBanner(drpBanner);
     const result = await BackendApi.listServices(session.userId);
 
     if (!result.ok) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Couldn’t load services. Is the backend running?</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Couldn’t load containers. Is the backend running?</td></tr>';
       countEl.textContent = '';
       return;
     }
 
-    // run-micro/run-medium instances live in the DRP section, not here.
+    // Only run-micro/run-medium belong here; managed images live under
+    // Managed Services.
     const services = ((result.data && result.data.services) || []).filter(function (s) {
-      return RUN_SERVICES.indexOf(s.service_name) === -1;
+      return RUN_SERVICES.indexOf(s.service_name) !== -1;
     });
-    countEl.textContent = services.length + (services.length === 1 ? ' service' : ' services');
+    countEl.textContent = services.length + (services.length === 1 ? ' container' : ' containers');
 
     if (services.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No services yet. Add one to get started.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No containers yet. Add one, then upload a binary or a Node.js zip on its page.</td></tr>';
       return;
     }
 
@@ -122,19 +131,19 @@
     });
   }
 
-  // ── add-service modal ──
-  const addModal = document.getElementById('addModal');
-  const addModalBanner = document.getElementById('addModalBanner');
-  const serviceSelect = document.getElementById('serviceSelect');
-  const regionSelect = document.getElementById('regionSelect');
-  const customNameInput = document.getElementById('customNameInput');
-  const envTextInput = document.getElementById('envTextInput');
-  const addServiceForm = document.getElementById('addServiceForm');
-  const addServiceSubmit = document.getElementById('addServiceSubmit');
+  // ── add-container modal ──
+  const addModal = document.getElementById('addContainerModal');
+  const addModalBanner = document.getElementById('addContainerBanner');
+  const tierSelect = document.getElementById('tierSelect');
+  const regionSelect = document.getElementById('containerRegionSelect');
+  const nameInput = document.getElementById('containerNameInput');
+  const envInput = document.getElementById('containerEnvInput');
+  const addForm = document.getElementById('addContainerForm');
+  const addSubmit = document.getElementById('addContainerSubmit');
 
   function openAddModal() {
-    customNameInput.value = '';
-    envTextInput.value = '';
+    nameInput.value = '';
+    envInput.value = '';
     addModal.classList.add('is-open');
     document.body.style.overflow = 'hidden';
   }
@@ -144,24 +153,23 @@
     document.body.style.overflow = '';
   }
 
-  document.getElementById('addServiceBtn').addEventListener('click', async function () {
+  document.getElementById('addContainerBtn').addEventListener('click', async function () {
     hideBanner(addModalBanner);
-    serviceSelect.innerHTML = '<option>Loading…</option>';
+    tierSelect.innerHTML = '<option>Loading…</option>';
     regionSelect.innerHTML = '<option>Loading…</option>';
     openAddModal();
 
     const [catalogResult, regionsResult] = await Promise.all([BackendApi.catalog(), BackendApi.regions()]);
 
     if (!catalogResult.ok) {
-      serviceSelect.innerHTML = '<option>Unavailable</option>';
-      showBanner(addModalBanner, 'Couldn’t load the service catalog.', true);
+      tierSelect.innerHTML = '<option>Unavailable</option>';
+      showBanner(addModalBanner, 'Couldn’t load the tier catalog.', true);
     } else {
-      // Managed images only — run-micro/run-medium are added under DRP.
       const names = ((catalogResult.data && catalogResult.data.services) || []).filter(function (name) {
-        return RUN_SERVICES.indexOf(name) === -1;
+        return RUN_SERVICES.indexOf(name) !== -1;
       });
-      serviceSelect.innerHTML = names.map(function (name) {
-        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+      tierSelect.innerHTML = names.map(function (name) {
+        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(tierLabel(name)) + '</option>';
       }).join('');
     }
 
@@ -176,41 +184,41 @@
     }
   });
 
-  document.getElementById('addModalClose').addEventListener('click', closeAddModal);
+  document.getElementById('addContainerClose').addEventListener('click', closeAddModal);
   addModal.addEventListener('click', function (e) {
     if (e.target === addModal) closeAddModal();
   });
 
-  addServiceForm.addEventListener('submit', async function (e) {
+  addForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const serviceName = serviceSelect.value;
+    const serviceName = tierSelect.value;
     const regionName = regionSelect.value;
-    if (!serviceName || !regionName) return;
+    if (!serviceName || !regionName || RUN_SERVICES.indexOf(serviceName) === -1) return;
 
-    addServiceSubmit.disabled = true;
-    addServiceSubmit.textContent = 'Creating…';
+    addSubmit.disabled = true;
+    addSubmit.textContent = 'Creating…';
     hideBanner(addModalBanner);
 
     const result = await BackendApi.createService(
       serviceName,
       session.userId,
       regionName,
-      customNameInput.value.trim(),
-      envTextInput.value
+      nameInput.value.trim(),
+      envInput.value
     );
 
-    addServiceSubmit.disabled = false;
-    addServiceSubmit.textContent = 'Create';
+    addSubmit.disabled = false;
+    addSubmit.textContent = 'Create';
 
     if (!result.ok) {
-      const reason = (result.data && result.data.reason) || 'Failed to create service.';
+      const reason = (result.data && result.data.reason) || 'Failed to create container.';
       showBanner(addModalBanner, reason === 'insufficient_balance' ? 'Insufficient balance.' : reason, true);
       return;
     }
 
     closeAddModal();
-    loadServices();
+    loadContainers();
   });
 
-  loadServices();
+  loadContainers();
 })();

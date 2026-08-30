@@ -103,6 +103,11 @@
                     <option value="remove">Remove</option>
                   </select>
                 </div>
+                <div class="form-group hidden" id="startCommandGroup">
+                  <label class="form-label" for="startCommandInput">Start Command <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="startCommandInput" placeholder="./payload --flag">
+                  <p class="form-hint">Run inside the container via <code>sh -c</code>, replacing the default. Leave empty to run the uploaded binary directly, or <code>npm install &amp;&amp; npm start</code> for a Node.js project.</p>
+                </div>
                 <div class="form-actions">
                   <button type="submit" class="btn btn-primary btn-sm">Save Settings</button>
                 </div>
