@@ -206,8 +206,19 @@
       showBanner((result.data && result.data.reason) || 'Failed to upload payload.', true);
       return;
     }
-    showBanner('Payload uploaded.', false);
     fileInput.value = '';
+
+    // A run-* instance exists (and bills) from creation, but has no
+    // container until a payload is in place — so launch it now rather
+    // than leaving the user to toggle it off and on to pick up the
+    // upload.
+    const launch = await BackendApi.launchService(current.service_name, session.userId, current.id);
+    if (!launch.ok) {
+      const reason = (launch.data && (launch.data.message || launch.data.reason)) || 'the container did not start';
+      showBanner('Payload uploaded, but ' + reason + '.', true);
+    } else {
+      showBanner('Payload uploaded and the container is running.', false);
+    }
     load();
   });
 
