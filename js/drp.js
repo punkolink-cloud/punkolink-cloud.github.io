@@ -42,6 +42,9 @@
 
     const isActive = service.status === 'active';
     const statusClass = isActive ? 'is-active' : 'is-stopped';
+    const statusText = isActive && service.needs_restart
+      ? service.status + ' · needs restart'
+      : service.status;
 
     tr.innerHTML =
       '<td>' + escapeHtml(service.custom_name || service.service_name) + '</td>' +
@@ -49,14 +52,14 @@
       '<td class="cell-mono">' + escapeHtml(service.region || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.port != null ? String(service.port) : '—') + '</td>' +
-      '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(service.status) + '</span></td>' +
+      '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(statusText) + '</span></td>' +
       '<td class="cell-actions"></td>';
 
     const actionsCell = tr.querySelector('.cell-actions');
 
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'btn btn-ghost btn-sm';
-    toggleBtn.textContent = isActive ? 'Turn Off' : 'Turn On';
+    toggleBtn.textContent = isActive ? 'Stop' : 'Run';
     toggleBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       toggleService(service, toggleBtn);
@@ -85,7 +88,10 @@
     const action = service.status === 'active' ? BackendApi.stopService : BackendApi.launchService;
     const result = await action(service.service_name, session.userId, service.id);
     if (!result.ok) {
-      const reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
+      let reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
+      if (reason === 'no_payload_uploaded') {
+        reason = 'Upload a payload on the container page before running it.';
+      }
       showBanner(drpBanner, reason, true);
     }
     loadContainers();

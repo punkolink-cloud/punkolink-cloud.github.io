@@ -52,7 +52,35 @@
     document.getElementById('kvPort').textContent = service.port != null ? service.port : '—';
 
     const toggleBtn = document.getElementById('toggleBtn');
-    toggleBtn.textContent = isActive ? 'Turn Off' : 'Turn On';
+    const restartBtn = document.getElementById('restartBtn');
+    if (isRunService) {
+      // A run-* instance is built and started on demand, not at creation.
+      toggleBtn.textContent = isActive ? 'Stop' : 'Run';
+    } else {
+      toggleBtn.textContent = isActive ? 'Turn Off' : 'Turn On';
+    }
+    restartBtn.classList.toggle('hidden', !(isRunService && isActive));
+
+    // Advisory notices: config saved but not yet applied, and "press Run".
+    const restartNotice = document.getElementById('restartNotice');
+    if (isRunService && service.needs_restart) {
+      restartNotice.textContent =
+        'Configuration changed since this container was last started. Restart it to apply the changes.';
+      restartNotice.classList.add('visible');
+    } else {
+      restartNotice.classList.remove('visible');
+      restartNotice.textContent = '';
+    }
+
+    const actionsHint = document.getElementById('actionsHint');
+    if (isRunService && !isActive) {
+      actionsHint.textContent = service.payload
+        ? 'Not running. Press Run to build and start the container.'
+        : 'Not running. Upload a payload below, then press Run.';
+      actionsHint.classList.remove('hidden');
+    } else {
+      actionsHint.classList.add('hidden');
+    }
 
     document.getElementById('envText').value = envMapToText(service.env_vars);
     document.getElementById('onExitSelect').value = service.on_exit || 'restart';
@@ -164,8 +192,25 @@
     const result = await action(current.service_name, session.userId, current.id);
     button.disabled = false;
     if (!result.ok) {
-      const reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
+      let reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
+      if (reason === 'no_payload_uploaded') reason = 'Upload a payload below before pressing Run.';
       showBanner(reason, true);
+    }
+    load();
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', async function () {
+    const button = this;
+    button.disabled = true;
+    // Launch rebuilds the container from the current config, so the same
+    // call both starts a stopped instance and restarts a running one.
+    const result = await BackendApi.launchService(current.service_name, session.userId, current.id);
+    button.disabled = false;
+    if (!result.ok) {
+      const reason = (result.data && (result.data.message || result.data.reason)) || 'Restart failed.';
+      showBanner(reason, true);
+    } else {
+      showBanner('Container restarted with the current configuration.', false);
     }
     load();
   });
@@ -207,18 +252,13 @@
       return;
     }
     fileInput.value = '';
-
-    // A run-* instance exists (and bills) from creation, but has no
-    // container until a payload is in place — so launch it now rather
-    // than leaving the user to toggle it off and on to pick up the
-    // upload.
-    const launch = await BackendApi.launchService(current.service_name, session.userId, current.id);
-    if (!launch.ok) {
-      const reason = (launch.data && (launch.data.message || launch.data.reason)) || 'the container did not start';
-      showBanner('Payload uploaded, but ' + reason + '.', true);
-    } else {
-      showBanner('Payload uploaded and the container is running.', false);
-    }
+    // Just stored — the container is (re)built from it on the next Run.
+    showBanner(
+      current.status === 'active'
+        ? 'Payload uploaded. Restart the container to run it.'
+        : 'Payload uploaded. Press Run to build and start the container.',
+      false
+    );
     load();
   });
 
