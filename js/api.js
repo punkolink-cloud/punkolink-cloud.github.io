@@ -119,17 +119,17 @@ const BackendApi = {
   },
 };
 
-// L3 — rented IPv6 addresses. The address pool lives on a DRP node; the
-// orchestrator tracks which ones an account holds and bills for them.
+// L3 — rented IPv4/IPv6 addresses. The address pool lives on a DRP node;
+// the orchestrator tracks which ones an account holds and bills for them.
 const L3Api = {
   list: function (userId, regionName) {
     const query = regionName ? '?region_name=' + encodeURIComponent(regionName) : '';
-    return apiRequest('/ipv6/' + userId + query, { method: 'GET' });
+    return apiRequest('/addresses/' + userId + query, { method: 'GET' });
   },
-  rent: function (userId, regionName) {
-    return apiRequest('/ipv6/' + userId, { method: 'POST', body: { region_name: regionName } });
+  rent: function (userId, regionName, family) {
+    return apiRequest('/addresses/' + userId, { method: 'POST', body: { region_name: regionName, family: family } });
   },
   release: function (userId, id) {
-    return apiRequest('/ipv6/' + userId + '/' + id, { method: 'DELETE' });
+    return apiRequest('/addresses/' + userId + '/' + id, { method: 'DELETE' });
   },
 };

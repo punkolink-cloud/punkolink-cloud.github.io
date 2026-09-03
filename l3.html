@@ -81,6 +81,12 @@
           </svg>
           <span class="sidebar-link-label">DRP</span>
         </a>
+        <a class="sidebar-link" href="backends.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/><path d="M8 7h.01M8 17h.01"/>
+          </svg>
+          <span class="sidebar-link-label">Backends</span>
+        </a>
       </nav>
     </aside>
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -98,6 +104,13 @@
         <div class="banner" id="l3Banner"></div>
 
         <div class="toolbar">
+          <div class="form-group" style="margin-bottom: 0; min-width: 140px;">
+            <label class="form-label" for="familySelect">Type</label>
+            <select class="form-select" id="familySelect">
+              <option value="ipv4">IPv4</option>
+              <option value="ipv6">IPv6</option>
+            </select>
+          </div>
           <div class="form-group" style="margin-bottom: 0; min-width: 220px;">
             <label class="form-label" for="regionSelect">Region</label>
             <select class="form-select" id="regionSelect"></select>
@@ -110,13 +123,14 @@
             <thead>
               <tr>
                 <th>Address</th>
+                <th>Type</th>
                 <th>Region</th>
                 <th>Rented</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="ipsBody">
-              <tr class="empty-row"><td colspan="4">Loading…</td></tr>
+              <tr class="empty-row"><td colspan="5">Loading…</td></tr>
             </tbody>
           </table>
         </div>

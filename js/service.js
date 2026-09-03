@@ -2,7 +2,7 @@
   const session = Session.requireAuth();
   if (!session) return;
 
-  const RUN_SERVICES = ['run-medium', 'run-micro'];
+  const RUN_SERVICES = ['run-medium', 'run-micro', 'run-linux'];
   const params = new URLSearchParams(window.location.search);
   const serviceId = params.get('id');
 

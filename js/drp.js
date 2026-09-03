@@ -5,11 +5,12 @@
   // The DRP section is the home for run-micro/run-medium instances: the
   // user brings their own payload (a binary or a zipped Node.js project),
   // uploaded on the container's page after it's created.
-  const RUN_SERVICES = ['run-micro', 'run-medium'];
+  const RUN_SERVICES = ['run-micro', 'run-medium', 'run-linux'];
 
   const TIER_LABELS = {
     'run-micro': 'micro · 128 MB',
     'run-medium': 'medium · 256 MB',
+    'run-linux': 'linux · 512 MB',
   };
 
   function tierLabel(name) {
@@ -171,9 +172,11 @@
       tierSelect.innerHTML = '<option>Unavailable</option>';
       showBanner(addModalBanner, 'Couldn’t load the tier catalog.', true);
     } else {
-      const names = ((catalogResult.data && catalogResult.data.services) || []).filter(function (name) {
-        return RUN_SERVICES.indexOf(name) !== -1;
-      });
+      const names = ((catalogResult.data && catalogResult.data.services) || [])
+        .map(function (entry) { return entry.name; })
+        .filter(function (name) {
+          return RUN_SERVICES.indexOf(name) !== -1;
+        });
       tierSelect.innerHTML = names.map(function (name) {
         return '<option value="' + escapeHtml(name) + '">' + escapeHtml(tierLabel(name)) + '</option>';
       }).join('');
