@@ -113,23 +113,38 @@
             <div class="page-tag">Workspace</div>
             <h1 class="page-title">L3</h1>
           </div>
-          <button class="btn btn-primary" id="rentBtn" disabled>Rent Address</button>
         </div>
 
         <div class="banner" id="l3Banner"></div>
 
         <div class="toolbar">
-          <div class="form-group" style="margin-bottom: 0; min-width: 140px;">
-            <label class="form-label" for="familySelect">Type</label>
-            <select class="form-select" id="familySelect">
-              <option value="ipv4">IPv4</option>
-              <option value="ipv6">IPv6</option>
-            </select>
+          <div class="toolbar-info">Rent an address</div>
+        </div>
+
+        <div class="service-cards" id="rentCards"></div>
+
+        <div class="create-panel" id="rentPanel">
+          <div class="create-panel-inner">
+            <div class="create-panel-body">
+              <h2 id="rentPanelTitle"></h2>
+              <p>Billed once a minute starting at the next tick.</p>
+
+              <div class="banner" id="rentPanelBanner"></div>
+
+              <form id="rentForm">
+                <div class="form-group">
+                  <label class="form-label" for="regionSelect">Region</label>
+                  <select class="form-select" id="regionSelect" required></select>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="rentSubmit">Rent</button>
+                </div>
+              </form>
+            </div>
           </div>
-          <div class="form-group" style="margin-bottom: 0; min-width: 220px;">
-            <label class="form-label" for="regionSelect">Region</label>
-            <select class="form-select" id="regionSelect"></select>
-          </div>
+        </div>
+
+        <div class="toolbar">
           <div class="toolbar-info" id="ipCount"></div>
         </div>
 
@@ -146,6 +161,81 @@
             </thead>
             <tbody id="ipsBody">
               <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="toolbar" style="margin-top: var(--space-8);">
+          <div class="toolbar-info">Network routes</div>
+        </div>
+
+        <div class="service-cards" id="routeCards"></div>
+
+        <div class="create-panel" id="routePanel">
+          <div class="create-panel-inner">
+            <div class="create-panel-body">
+              <h2 id="routePanelTitle"></h2>
+              <p>Changes are applied to the target container's firewall rules right away.</p>
+
+              <div class="banner" id="routePanelBanner"></div>
+
+              <form id="routeForm">
+                <div class="form-group hidden" id="routeAddressGroup">
+                  <label class="form-label" for="routeAddressSelect">Address</label>
+                  <select class="form-select" id="routeAddressSelect"></select>
+                  <p class="form-hint hidden" id="routeAddressHint"></p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="routeInstanceSelect">Routes To</label>
+                  <select class="form-select" id="routeInstanceSelect"></select>
+                  <p class="form-hint">Only instances still on their default address can take a new route.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="routeProtocolSelect">Protocol</label>
+                  <select class="form-select" id="routeProtocolSelect">
+                    <option value="tcp">TCP</option>
+                    <option value="udp">UDP</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="routePortInput">Port</label>
+                  <input class="form-input" type="number" id="routePortInput" min="1" max="65535" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="routeWhitelistInput">Source IP Whitelist <span class="optional">(optional)</span></label>
+                  <textarea class="form-textarea" id="routeWhitelistInput" rows="2" placeholder="One IP or CIDR per line"></textarea>
+                  <p class="form-hint">If set, only these sources reach it — the blacklist below is ignored.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="routeBlacklistInput">Source IP Blacklist <span class="optional">(optional)</span></label>
+                  <textarea class="form-textarea" id="routeBlacklistInput" rows="2" placeholder="One IP or CIDR per line"></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="routeSubmit">Create</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>IP Ver.</th>
+                <th>Address</th>
+                <th>Proto</th>
+                <th>Port</th>
+                <th>Whitelist</th>
+                <th>Blacklist</th>
+                <th>Routes To</th>
+                <th>Enabled</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="routesBody">
+              <tr class="empty-row"><td colspan="10">Loading…</td></tr>
             </tbody>
           </table>
         </div>
