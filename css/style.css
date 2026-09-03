@@ -641,6 +641,97 @@ main {
   border: 1px solid var(--border);
 }
 
+a.stat-tile {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--transition);
+}
+
+a.stat-tile:hover {
+  border-color: var(--text-muted);
+}
+
+/* ── service cards + inline create panel ───────────────────── */
+.service-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.service-card {
+  flex: 1 1 200px;
+  min-width: 180px;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--transition), background-color var(--transition);
+}
+
+.service-card:hover {
+  border-color: var(--text-muted);
+}
+
+.service-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.service-card-name {
+  font-size: var(--text-h3);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+}
+
+.service-card-hint {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  color: var(--text-muted);
+}
+
+/* A CSS-grid height animation (0fr -> 1fr) instead of a JS-measured
+   max-height -- animates smoothly to the panel's real content height,
+   including when that content changes (e.g. the parent-instance picker
+   showing/hiding) without needing to be told a new height by hand. */
+.create-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+  margin-bottom: var(--space-6);
+}
+
+.create-panel.is-open {
+  grid-template-rows: 1fr;
+}
+
+.create-panel-inner {
+  overflow: hidden;
+}
+
+.create-panel-body {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: var(--space-6);
+}
+
+.create-panel-body h2 {
+  font-size: var(--text-h2);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-1);
+}
+
+.create-panel-body > p {
+  color: var(--text-muted);
+  font-size: var(--text-secondary);
+  margin-bottom: var(--space-6);
+}
+
 /* Site cards are a plain hairline box — no top accent bar (accent is for
    interactive/active states only). */
 
@@ -1100,12 +1191,23 @@ tbody tr.row-link:hover {
   border-right: 1px solid var(--border);
   padding: var(--space-4) var(--space-2);
   transition: width var(--transition), padding var(--transition);
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* Pinned below .sidebar-nav (margin-top: auto), regardless of how much
+   the nav above it fills — .sidebar is the flex column that makes that
+   possible. */
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
 }
 
 .sidebar-section-label {
@@ -1115,6 +1217,7 @@ tbody tr.row-link:hover {
   letter-spacing: 0.08em;
   color: var(--text-muted);
   padding: 0 var(--space-3);
+  margin-top: var(--space-4);
   margin-bottom: var(--space-2);
   white-space: nowrap;
 }

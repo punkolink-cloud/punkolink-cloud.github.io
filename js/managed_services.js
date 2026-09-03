@@ -155,6 +155,29 @@
     loadServices();
   }
 
+  const cardsEl = document.getElementById('serviceCards');
+  let selectedService = null; // catalog name of the card currently open, or null
+
+  function renderCard(entry) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'service-card' + (entry.name === selectedService ? ' active' : '');
+    btn.innerHTML =
+      '<div class="service-card-name">' + escapeHtml(displayName(entry.name)) + '</div>' +
+      (entry.parent_service
+        ? '<div class="service-card-hint">requires ' + escapeHtml(displayName(entry.parent_service)) + '</div>'
+        : '');
+    btn.addEventListener('click', function () { toggleCard(entry.name); });
+    return btn;
+  }
+
+  function renderCards() {
+    cardsEl.innerHTML = '';
+    catalog.forEach(function (entry) {
+      cardsEl.appendChild(renderCard(entry));
+    });
+  }
+
   async function loadServices() {
     hideBanner(pageBanner);
     const [catalogResult, servicesResult] = await Promise.all([
@@ -170,16 +193,20 @@
 
     const allCatalog = (catalogResult.data && catalogResult.data.services) || [];
     catalog = allCatalog.filter(function (entry) { return entry.category === CATEGORY; });
+    renderCards();
 
     allServices = (servicesResult.data && servicesResult.data.services) || [];
     const catalogNames = {};
     catalog.forEach(function (entry) { catalogNames[entry.name] = true; });
     const services = allServices.filter(function (s) { return catalogNames[s.service_name]; });
 
+    // A parent candidate list may have just gained or lost a member.
+    if (selectedService) syncParentField();
+
     countEl.textContent = services.length + (services.length === 1 ? ' service' : ' services');
 
     if (services.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No services yet. Add one to get started.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No services yet. Pick one above to get started.</td></tr>';
       return;
     }
 
@@ -190,10 +217,10 @@
     });
   }
 
-  // ── add-service modal ──
-  const addModal = document.getElementById('addModal');
+  // ── inline create panel ──
+  const createPanel = document.getElementById('createPanel');
+  const createPanelTitle = document.getElementById('createPanelTitle');
   const addModalBanner = document.getElementById('addModalBanner');
-  const serviceSelect = document.getElementById('serviceSelect');
   const regionSelect = document.getElementById('regionSelect');
   const customNameInput = document.getElementById('customNameInput');
   const envTextInput = document.getElementById('envTextInput');
@@ -203,23 +230,11 @@
   const parentSelect = document.getElementById('parentSelect');
   const parentHint = document.getElementById('parentHint');
 
-  function openAddModal() {
-    customNameInput.value = '';
-    envTextInput.value = '';
-    addModal.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeAddModal() {
-    addModal.classList.remove('is-open');
-    document.body.style.overflow = '';
-  }
-
-  // Candidate parents for the currently-selected catalog entry: the
-  // user's own instances of the required parent type that don't already
-  // carry an extension.
+  // Candidate parents for the currently-open card: the user's own
+  // instances of the required parent type that don't already carry an
+  // extension.
   function syncParentField() {
-    const entry = catalog.filter(function (c) { return c.name === serviceSelect.value; })[0];
+    const entry = catalog.filter(function (c) { return c.name === selectedService; })[0];
     const requiredParent = entry && entry.parent_service;
 
     if (!requiredParent) {
@@ -251,52 +266,40 @@
     }).join('');
   }
 
-  document.getElementById('addServiceBtn').addEventListener('click', async function () {
+  function openPanelFor(name) {
+    selectedService = name;
+    Array.prototype.forEach.call(cardsEl.children, function (card, i) {
+      card.classList.toggle('active', catalog[i] && catalog[i].name === name);
+    });
+    createPanelTitle.textContent = 'New ' + displayName(name);
+    customNameInput.value = '';
+    envTextInput.value = '';
     hideBanner(addModalBanner);
-    serviceSelect.innerHTML = '<option>Loading…</option>';
-    regionSelect.innerHTML = '<option>Loading…</option>';
-    openAddModal();
+    syncParentField();
+    createPanel.classList.add('is-open');
+  }
 
-    const regionsResult = await BackendApi.regions();
+  function closePanel() {
+    selectedService = null;
+    Array.prototype.forEach.call(cardsEl.children, function (card) {
+      card.classList.remove('active');
+    });
+    createPanel.classList.remove('is-open');
+  }
 
-    // catalog/allServices were already loaded by loadServices() on page
-    // load; re-read them fresh so a just-created parent instance shows
-    // up as a candidate right away.
-    await loadServices();
-
-    if (catalog.length === 0) {
-      serviceSelect.innerHTML = '<option>Unavailable</option>';
-      showBanner(addModalBanner, 'Couldn’t load the service catalog.', true);
+  function toggleCard(name) {
+    if (selectedService === name) {
+      closePanel();
     } else {
-      serviceSelect.innerHTML = catalog.map(function (entry) {
-        return '<option value="' + escapeHtml(entry.name) + '">' + escapeHtml(displayName(entry.name)) + '</option>';
-      }).join('');
-      syncParentField();
+      openPanelFor(name);
     }
-
-    if (!regionsResult.ok) {
-      regionSelect.innerHTML = '<option>Unavailable</option>';
-      showBanner(addModalBanner, 'Couldn’t load the region list.', true);
-    } else {
-      const regionNames = (regionsResult.data && regionsResult.data.regions) || [];
-      regionSelect.innerHTML = regionNames.map(function (name) {
-        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
-      }).join('');
-    }
-  });
-
-  serviceSelect.addEventListener('change', syncParentField);
-
-  document.getElementById('addModalClose').addEventListener('click', closeAddModal);
-  addModal.addEventListener('click', function (e) {
-    if (e.target === addModal) closeAddModal();
-  });
+  }
 
   addServiceForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const serviceName = serviceSelect.value;
+    if (!selectedService) return;
     const regionName = regionSelect.value;
-    if (!serviceName || !regionName) return;
+    if (!regionName) return;
     if (!parentGroup.classList.contains('hidden') && !parentSelect.value) return;
 
     addServiceSubmit.disabled = true;
@@ -304,7 +307,7 @@
     hideBanner(addModalBanner);
 
     const result = await BackendApi.createService(
-      serviceName,
+      selectedService,
       session.userId,
       regionName,
       customNameInput.value.trim(),
@@ -320,9 +323,22 @@
       return;
     }
 
-    closeAddModal();
+    closePanel();
     loadServices();
   });
 
-  loadServices();
+  async function init() {
+    const regionsResult = await BackendApi.regions();
+    if (!regionsResult.ok) {
+      regionSelect.innerHTML = '<option>Unavailable</option>';
+    } else {
+      const regionNames = (regionsResult.data && regionsResult.data.regions) || [];
+      regionSelect.innerHTML = regionNames.map(function (name) {
+        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+      }).join('');
+    }
+    loadServices();
+  }
+
+  init();
 })();

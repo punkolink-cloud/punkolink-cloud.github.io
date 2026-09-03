@@ -17,6 +17,9 @@
     return TIER_LABELS[name] || name;
   }
 
+  const TIER_NAMES = { 'run-micro': 'Micro', 'run-medium': 'Medium', 'run-linux': 'Linux' };
+  const TIER_MEMORY = { 'run-micro': '128 MB', 'run-medium': '256 MB', 'run-linux': '512 MB' };
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
@@ -110,25 +113,57 @@
     loadContainers();
   }
 
+  const cardsEl = document.getElementById('tierCards');
+  let tiers = []; // catalog names in RUN_SERVICES order
+  let selectedTier = null;
+
+  function renderCard(name) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'service-card' + (name === selectedTier ? ' active' : '');
+    btn.innerHTML =
+      '<div class="service-card-name">' + escapeHtml(TIER_NAMES[name] || name) + '</div>' +
+      '<div class="service-card-hint">' + escapeHtml(TIER_MEMORY[name] || '') + '</div>';
+    btn.addEventListener('click', function () { toggleCard(name); });
+    return btn;
+  }
+
+  function renderCards() {
+    cardsEl.innerHTML = '';
+    tiers.forEach(function (name) {
+      cardsEl.appendChild(renderCard(name));
+    });
+  }
+
   async function loadContainers() {
     hideBanner(drpBanner);
-    const result = await BackendApi.listServices(session.userId);
+    const [catalogResult, servicesResult] = await Promise.all([
+      BackendApi.catalog(),
+      BackendApi.listServices(session.userId),
+    ]);
 
-    if (!result.ok) {
+    if (catalogResult.ok) {
+      tiers = ((catalogResult.data && catalogResult.data.services) || [])
+        .map(function (entry) { return entry.name; })
+        .filter(function (name) { return RUN_SERVICES.indexOf(name) !== -1; });
+      renderCards();
+    }
+
+    if (!servicesResult.ok) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Couldn’t load containers. Is the backend running?</td></tr>';
       countEl.textContent = '';
       return;
     }
 
-    // Only run-micro/run-medium belong here; managed images live under
-    // Managed Services.
-    const services = ((result.data && result.data.services) || []).filter(function (s) {
+    // Only the DRP compute tiers belong here; managed images live under
+    // the Workspace sections.
+    const services = ((servicesResult.data && servicesResult.data.services) || []).filter(function (s) {
       return RUN_SERVICES.indexOf(s.service_name) !== -1;
     });
     countEl.textContent = services.length + (services.length === 1 ? ' container' : ' containers');
 
     if (services.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No containers yet. Add one, then upload a binary or a Node.js zip on its page.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No containers yet. Pick a tier above to get started.</td></tr>';
       return;
     }
 
@@ -138,78 +173,55 @@
     });
   }
 
-  // ── add-container modal ──
-  const addModal = document.getElementById('addContainerModal');
+  // ── inline create panel ──
+  const createPanel = document.getElementById('createPanel');
+  const createPanelTitle = document.getElementById('createPanelTitle');
   const addModalBanner = document.getElementById('addContainerBanner');
-  const tierSelect = document.getElementById('tierSelect');
   const regionSelect = document.getElementById('containerRegionSelect');
   const nameInput = document.getElementById('containerNameInput');
   const envInput = document.getElementById('containerEnvInput');
   const addForm = document.getElementById('addContainerForm');
   const addSubmit = document.getElementById('addContainerSubmit');
 
-  function openAddModal() {
+  function openPanelFor(name) {
+    selectedTier = name;
+    Array.prototype.forEach.call(cardsEl.children, function (card, i) {
+      card.classList.toggle('active', tiers[i] === name);
+    });
+    createPanelTitle.textContent = 'New ' + (TIER_NAMES[name] || name) + ' Container';
     nameInput.value = '';
     envInput.value = '';
-    addModal.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeAddModal() {
-    addModal.classList.remove('is-open');
-    document.body.style.overflow = '';
-  }
-
-  document.getElementById('addContainerBtn').addEventListener('click', async function () {
     hideBanner(addModalBanner);
-    tierSelect.innerHTML = '<option>Loading…</option>';
-    regionSelect.innerHTML = '<option>Loading…</option>';
-    openAddModal();
+    createPanel.classList.add('is-open');
+  }
 
-    const [catalogResult, regionsResult] = await Promise.all([BackendApi.catalog(), BackendApi.regions()]);
+  function closePanel() {
+    selectedTier = null;
+    Array.prototype.forEach.call(cardsEl.children, function (card) {
+      card.classList.remove('active');
+    });
+    createPanel.classList.remove('is-open');
+  }
 
-    if (!catalogResult.ok) {
-      tierSelect.innerHTML = '<option>Unavailable</option>';
-      showBanner(addModalBanner, 'Couldn’t load the tier catalog.', true);
+  function toggleCard(name) {
+    if (selectedTier === name) {
+      closePanel();
     } else {
-      const names = ((catalogResult.data && catalogResult.data.services) || [])
-        .map(function (entry) { return entry.name; })
-        .filter(function (name) {
-          return RUN_SERVICES.indexOf(name) !== -1;
-        });
-      tierSelect.innerHTML = names.map(function (name) {
-        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(tierLabel(name)) + '</option>';
-      }).join('');
+      openPanelFor(name);
     }
-
-    if (!regionsResult.ok) {
-      regionSelect.innerHTML = '<option>Unavailable</option>';
-      showBanner(addModalBanner, 'Couldn’t load the region list.', true);
-    } else {
-      const regionNames = (regionsResult.data && regionsResult.data.regions) || [];
-      regionSelect.innerHTML = regionNames.map(function (name) {
-        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
-      }).join('');
-    }
-  });
-
-  document.getElementById('addContainerClose').addEventListener('click', closeAddModal);
-  addModal.addEventListener('click', function (e) {
-    if (e.target === addModal) closeAddModal();
-  });
+  }
 
   addForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const serviceName = tierSelect.value;
     const regionName = regionSelect.value;
-    if (!serviceName || !regionName || RUN_SERVICES.indexOf(serviceName) === -1) return;
+    if (!selectedTier || !regionName) return;
 
     addSubmit.disabled = true;
     addSubmit.textContent = 'Creating…';
     hideBanner(addModalBanner);
 
     const result = await BackendApi.createService(
-      serviceName,
+      selectedTier,
       session.userId,
       regionName,
       nameInput.value.trim(),
@@ -225,9 +237,22 @@
       return;
     }
 
-    closeAddModal();
+    closePanel();
     loadContainers();
   });
 
-  loadContainers();
+  async function init() {
+    const regionsResult = await BackendApi.regions();
+    if (!regionsResult.ok) {
+      regionSelect.innerHTML = '<option>Unavailable</option>';
+    } else {
+      const regionNames = (regionsResult.data && regionsResult.data.regions) || [];
+      regionSelect.innerHTML = regionNames.map(function (name) {
+        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+      }).join('');
+    }
+    loadContainers();
+  }
+
+  init();
 })();

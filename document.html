@@ -31,21 +31,28 @@
         punkolink
       </a>
     </div>
-    <nav class="nav">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="billing.html">Billing</a>
-    </nav>
     <div class="nav-user">
       <span class="nav-user-tag" id="navUserTag"></span>
-      <a href="#" class="btn btn-ghost btn-sm hidden" id="navLogout">Log Out</a>
     </div>
   </header>
 
   <div class="app-shell">
     <aside class="sidebar" id="appSidebar">
       <nav class="sidebar-nav">
-        <div class="sidebar-section-label">Workspace</div>
         <a class="sidebar-link" href="dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+          </svg>
+          <span class="sidebar-link-label">Dashboard</span>
+        </a>
+        <a class="sidebar-link" href="billing.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+          </svg>
+          <span class="sidebar-link-label">Billing</span>
+        </a>
+        <div class="sidebar-section-label">Workspace</div>
+        <a class="sidebar-link" href="database.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>
           </svg>
@@ -88,6 +95,14 @@
           <span class="sidebar-link-label">Backends</span>
         </a>
       </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="sidebar-link hidden" id="navLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+          </svg>
+          <span class="sidebar-link-label">Log Out</span>
+        </a>
+      </div>
     </aside>
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
@@ -98,10 +113,47 @@
             <div class="page-tag">Managed Services</div>
             <h1 class="page-title">Document</h1>
           </div>
-          <button class="btn btn-primary" id="addServiceBtn">+ Add Service</button>
         </div>
 
         <div class="banner" id="dashboardBanner"></div>
+
+        <div class="service-cards" id="serviceCards"></div>
+
+        <div class="create-panel" id="createPanel">
+          <div class="create-panel-inner">
+            <div class="create-panel-body">
+              <h2 id="createPanelTitle"></h2>
+              <p>Billed once a minute starting at the next tick.</p>
+
+              <div class="banner" id="addModalBanner"></div>
+
+              <form id="addServiceForm">
+                <div class="form-group hidden" id="parentGroup">
+                  <label class="form-label" for="parentSelect">Attach To</label>
+                  <select class="form-select" id="parentSelect"></select>
+                  <p class="form-hint hidden" id="parentHint"></p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="regionSelect">Region</label>
+                  <select class="form-select" id="regionSelect" required></select>
+                  <p class="form-hint">The virtual machine within the region is picked automatically.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="customNameInput">Name <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="customNameInput" placeholder="e.g. main-cache">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="envTextInput">Environment Variables <span class="optional">(optional)</span></label>
+                  <textarea class="form-textarea" id="envTextInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
+                  <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="addServiceSubmit">Create</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
 
         <div class="toolbar">
           <div class="toolbar-info" id="serviceCount"></div>
@@ -132,48 +184,6 @@
   <footer class="footer">
     © 2026 Punkolink — internal control panel.
   </footer>
-
-  <!-- Add service modal -->
-  <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
-    <div class="modal">
-      <button class="modal-close" id="addModalClose" aria-label="Close">&times;</button>
-      <div class="modal-header">
-        <h2 id="addModalTitle">Add Service</h2>
-        <p>Billed once a minute starting at the next tick.</p>
-      </div>
-
-      <div class="banner" id="addModalBanner"></div>
-
-      <form id="addServiceForm">
-        <div class="form-group">
-          <label class="form-label" for="serviceSelect">Service Type</label>
-          <select class="form-select" id="serviceSelect" required></select>
-        </div>
-        <div class="form-group hidden" id="parentGroup">
-          <label class="form-label" for="parentSelect">Attach To</label>
-          <select class="form-select" id="parentSelect"></select>
-          <p class="form-hint hidden" id="parentHint"></p>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="regionSelect">Region</label>
-          <select class="form-select" id="regionSelect" required></select>
-          <p class="form-hint">The virtual machine within the region is picked automatically.</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="customNameInput">Name <span class="optional">(optional)</span></label>
-          <input class="form-input" type="text" id="customNameInput" placeholder="e.g. main-cache">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="envTextInput">Environment Variables <span class="optional">(optional)</span></label>
-          <textarea class="form-textarea" id="envTextInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
-          <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary btn-block" id="addServiceSubmit">Create</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>

@@ -15,6 +15,19 @@
   let allServices = [];
   let heldAddresses = [];
 
+  // Which section a service was opened from varies (Database, In-memory,
+  // Document, DRP), so there's no one fixed "back" destination — return
+  // to wherever the visit actually came from, falling back to the
+  // overview page for a direct link with no history to unwind.
+  document.getElementById('backLink').addEventListener('click', function (e) {
+    e.preventDefault();
+    if (document.referrer) {
+      window.history.back();
+    } else {
+      window.location.href = 'dashboard.html';
+    }
+  });
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];

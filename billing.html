@@ -6,71 +6,154 @@
   <title>Punkolink — Billing</title>
 
   <link rel="stylesheet" href="css/style.css">
+
+  <script>
+    // Restore the collapsed-sidebar state before first paint so the panel
+    // doesn't flash open on every load.
+    try {
+      if (localStorage.getItem('punkolink_sidebar_collapsed') === '1') {
+        document.documentElement.classList.add('sidebar-collapsed');
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body>
 
   <header class="header">
-    <a href="dashboard.html" class="logo">
-      <span class="logo-dot"></span>
-      punkolink
-    </a>
-    <nav class="nav">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="billing.html" class="active">Billing</a>
-    </nav>
+    <div class="header-left">
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle workspace panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
+      </button>
+      <a href="dashboard.html" class="logo">
+        <span class="logo-dot"></span>
+        punkolink
+      </a>
+    </div>
     <div class="nav-user">
       <span class="nav-user-tag" id="navUserTag"></span>
-      <a href="#" class="btn btn-ghost btn-sm hidden" id="navLogout">Log Out</a>
     </div>
   </header>
 
-  <main>
-    <div class="shell">
-      <div class="page-head">
-        <div>
-          <div class="page-tag">Account</div>
-          <h1 class="page-title">Billing</h1>
-        </div>
+  <div class="app-shell">
+    <aside class="sidebar" id="appSidebar">
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+          </svg>
+          <span class="sidebar-link-label">Dashboard</span>
+        </a>
+        <a class="sidebar-link active" href="billing.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+          </svg>
+          <span class="sidebar-link-label">Billing</span>
+        </a>
+        <div class="sidebar-section-label">Workspace</div>
+        <a class="sidebar-link" href="database.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>
+          </svg>
+          <span class="sidebar-link-label">Database</span>
+        </a>
+        <a class="sidebar-link" href="in-memory.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/>
+          </svg>
+          <span class="sidebar-link-label">In-memory</span>
+        </a>
+        <a class="sidebar-link" href="document.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>
+          </svg>
+          <span class="sidebar-link-label">Document</span>
+        </a>
+        <a class="sidebar-link" href="l3.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.7 4 6 4 9s-1.4 6.3-4 9c-2.6-2.7-4-6-4-9s1.4-6.3 4-9z"/>
+          </svg>
+          <span class="sidebar-link-label">L3</span>
+        </a>
+        <a class="sidebar-link" href="l7.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M8 11l8-4M8 13l8 4"/>
+          </svg>
+          <span class="sidebar-link-label">L7</span>
+        </a>
+        <a class="sidebar-link" href="drp.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>
+          </svg>
+          <span class="sidebar-link-label">DRP</span>
+        </a>
+        <a class="sidebar-link" href="backends.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/><path d="M8 7h.01M8 17h.01"/>
+          </svg>
+          <span class="sidebar-link-label">Backends</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="sidebar-link hidden" id="navLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+          </svg>
+          <span class="sidebar-link-label">Log Out</span>
+        </a>
       </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-      <div class="banner" id="billingBanner"></div>
-
-      <div class="stat-row">
-        <div class="stat-tile">
-          <div class="stat-label">Current Balance</div>
-          <div class="stat-value" id="balanceValue">—<span class="unit">credits</span></div>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <div class="toolbar-info">Every active service is billed in small fractions once a minute.</div>
-      </div>
-
-      <div class="page-head">
-        <div>
-          <div class="page-tag">Payment</div>
-          <h2 class="page-title" style="font-size: var(--text-h2);">Buy Credits</h2>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <div class="toolbar-info">Paid through Stripe. Credits are added automatically once the payment is confirmed — this can take a few seconds.</div>
-      </div>
-
-      <div id="packSection">
-        <div class="loading-row" id="packLoading">Loading…</div>
-        <div class="package-card hidden" id="packCard" style="max-width: 360px;">
-          <div class="package-label">Credits come in packs of <span id="packSize">5</span></div>
-          <div class="form-group">
-            <label class="form-label" for="packQuantity">Number of Packs</label>
-            <input class="form-input" type="number" id="packQuantity" min="1" step="1" value="1">
+    <main>
+      <div class="shell">
+        <div class="page-head">
+          <div>
+            <div class="page-tag">Account</div>
+            <h1 class="page-title">Billing</h1>
           </div>
-          <div class="package-credits"><span id="packTotal">5</span><span class="unit">credits</span></div>
-          <button class="btn btn-primary btn-block" id="buyBtn">Buy</button>
+        </div>
+
+        <div class="banner" id="billingBanner"></div>
+
+        <div class="stat-row">
+          <div class="stat-tile">
+            <div class="stat-label">Current Balance</div>
+            <div class="stat-value" id="balanceValue">—<span class="unit">credits</span></div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-info">Every active service is billed in small fractions once a minute.</div>
+        </div>
+
+        <div class="page-head">
+          <div>
+            <div class="page-tag">Payment</div>
+            <h2 class="page-title" style="font-size: var(--text-h2);">Buy Credits</h2>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-info">Paid through Stripe. Credits are added automatically once the payment is confirmed — this can take a few seconds.</div>
+        </div>
+
+        <div id="packSection">
+          <div class="loading-row" id="packLoading">Loading…</div>
+          <div class="package-card hidden" id="packCard" style="max-width: 360px;">
+            <div class="package-label">Credits come in packs of <span id="packSize">5</span></div>
+            <div class="form-group">
+              <label class="form-label" for="packQuantity">Number of Packs</label>
+              <input class="form-input" type="number" id="packQuantity" min="1" step="1" value="1">
+            </div>
+            <div class="package-credits"><span id="packTotal">5</span><span class="unit">credits</span></div>
+            <button class="btn btn-primary btn-block" id="buyBtn">Buy</button>
+          </div>
         </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <footer class="footer">
     © 2026 Punkolink — internal control panel.
@@ -79,5 +162,6 @@
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>
   <script src="js/billing.js"></script>
+  <script src="js/sidebar.js"></script>
 </body>
 </html>

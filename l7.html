@@ -31,21 +31,28 @@
         punkolink
       </a>
     </div>
-    <nav class="nav">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="billing.html">Billing</a>
-    </nav>
     <div class="nav-user">
       <span class="nav-user-tag" id="navUserTag"></span>
-      <a href="#" class="btn btn-ghost btn-sm hidden" id="navLogout">Log Out</a>
     </div>
   </header>
 
   <div class="app-shell">
     <aside class="sidebar" id="appSidebar">
       <nav class="sidebar-nav">
-        <div class="sidebar-section-label">Workspace</div>
         <a class="sidebar-link" href="dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+          </svg>
+          <span class="sidebar-link-label">Dashboard</span>
+        </a>
+        <a class="sidebar-link" href="billing.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+          </svg>
+          <span class="sidebar-link-label">Billing</span>
+        </a>
+        <div class="sidebar-section-label">Workspace</div>
+        <a class="sidebar-link" href="database.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>
           </svg>
@@ -88,6 +95,14 @@
           <span class="sidebar-link-label">Backends</span>
         </a>
       </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="sidebar-link hidden" id="navLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+          </svg>
+          <span class="sidebar-link-label">Log Out</span>
+        </a>
+      </div>
     </aside>
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
