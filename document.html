@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Punkolink — L3</title>
+  <title>Punkolink — Document</title>
 
   <link rel="stylesheet" href="css/style.css">
 
@@ -57,13 +57,13 @@
           </svg>
           <span class="sidebar-link-label">In-memory</span>
         </a>
-        <a class="sidebar-link" href="document.html">
+        <a class="sidebar-link active" href="document.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>
           </svg>
           <span class="sidebar-link-label">Document</span>
         </a>
-        <a class="sidebar-link active" href="l3.html">
+        <a class="sidebar-link" href="l3.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.7 4 6 4 9s-1.4 6.3-4 9c-2.6-2.7-4-6-4-9s1.4-6.3 4-9z"/>
           </svg>
@@ -89,34 +89,33 @@
       <div class="shell shell-full">
         <div class="page-head">
           <div>
-            <div class="page-tag">Workspace</div>
-            <h1 class="page-title">L3</h1>
+            <div class="page-tag">Managed Services</div>
+            <h1 class="page-title">Document</h1>
           </div>
-          <button class="btn btn-primary" id="rentBtn" disabled>Rent Address</button>
+          <button class="btn btn-primary" id="addServiceBtn">+ Add Service</button>
         </div>
 
-        <div class="banner" id="l3Banner"></div>
+        <div class="banner" id="dashboardBanner"></div>
 
         <div class="toolbar">
-          <div class="form-group" style="margin-bottom: 0; min-width: 220px;">
-            <label class="form-label" for="regionSelect">Region</label>
-            <select class="form-select" id="regionSelect"></select>
-          </div>
-          <div class="toolbar-info" id="ipCount"></div>
+          <div class="toolbar-info" id="serviceCount"></div>
         </div>
 
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Address</th>
+                <th>Name</th>
+                <th>Service</th>
                 <th>Region</th>
-                <th>Rented</th>
+                <th>Hostname</th>
+                <th>Port</th>
+                <th>Status</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="ipsBody">
-              <tr class="empty-row"><td colspan="4">Loading…</td></tr>
+            <tbody id="servicesBody">
+              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -128,9 +127,60 @@
     © 2026 Punkolink — internal control panel.
   </footer>
 
+  <!-- Add service modal -->
+  <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+    <div class="modal">
+      <button class="modal-close" id="addModalClose" aria-label="Close">&times;</button>
+      <div class="modal-header">
+        <h2 id="addModalTitle">Add Service</h2>
+        <p>Billed once a minute starting at the next tick.</p>
+      </div>
+
+      <div class="banner" id="addModalBanner"></div>
+
+      <form id="addServiceForm">
+        <div class="form-group">
+          <label class="form-label" for="serviceSelect">Service Type</label>
+          <select class="form-select" id="serviceSelect" required></select>
+        </div>
+        <div class="form-group hidden" id="parentGroup">
+          <label class="form-label" for="parentSelect">Attach To</label>
+          <select class="form-select" id="parentSelect"></select>
+          <p class="form-hint hidden" id="parentHint"></p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regionSelect">Region</label>
+          <select class="form-select" id="regionSelect" required></select>
+          <p class="form-hint">The virtual machine within the region is picked automatically.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="customNameInput">Name <span class="optional">(optional)</span></label>
+          <input class="form-input" type="text" id="customNameInput" placeholder="e.g. main-cache">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="envTextInput">Environment Variables <span class="optional">(optional)</span></label>
+          <textarea class="form-textarea" id="envTextInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
+          <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block" id="addServiceSubmit">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>
-  <script src="js/l3.js"></script>
+  <script>
+    // Google sign-in returns here (POST_LOGIN_REDIRECT) with the JWT in
+    // the URL fragment (#token=…). Adopt + scrub it BEFORE
+    // managed_services.js runs its Session.requireAuth() check —
+    // otherwise the just-signed-in user is bounced to login before the
+    // token is ever read.
+    Session.adoptTokenFromHash();
+    window.MANAGED_SERVICES_CATEGORY = 'document';
+  </script>
+  <script src="js/managed_services.js"></script>
   <script src="js/sidebar.js"></script>
 </body>
 </html>

@@ -27,6 +27,18 @@
     detailBanner.classList.toggle('success', !isError);
   }
 
+  // reason (from an API error body) -> a message worth showing as-is.
+  const REASON_TEXT = {
+    managed_by_extension: 'This instance carries an extension — stop/start it from the extension’s own page instead.',
+    has_active_extension: 'Remove its extension first, then delete it.',
+    no_payload_uploaded: 'Upload a payload below before pressing Run.',
+  };
+
+  function reasonText(result, fallback) {
+    const reason = result.data && (result.data.message || result.data.reason);
+    return REASON_TEXT[reason] || reason || fallback;
+  }
+
   function envMapToText(envVars) {
     return Object.keys(envVars || {}).map(function (key) {
       return key + '=' + envVars[key];
@@ -192,9 +204,7 @@
     const result = await action(current.service_name, session.userId, current.id);
     button.disabled = false;
     if (!result.ok) {
-      let reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
-      if (reason === 'no_payload_uploaded') reason = 'Upload a payload below before pressing Run.';
-      showBanner(reason, true);
+      showBanner(reasonText(result, 'Action failed.'), true);
     }
     load();
   });
@@ -219,7 +229,7 @@
     if (!window.confirm('Delete ' + (current.custom_name || current.service_name) + '? This cannot be undone.')) return;
     const result = await BackendApi.deleteService(current.service_name, session.userId, current.id);
     if (!result.ok) {
-      showBanner('Failed to delete service.', true);
+      showBanner(reasonText(result, 'Failed to delete service.'), true);
       return;
     }
     window.location.href = 'dashboard.html';

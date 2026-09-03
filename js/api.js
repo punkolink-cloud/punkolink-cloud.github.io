@@ -80,10 +80,15 @@ const BackendApi = {
   listServices: function (userId) {
     return apiRequest('/services/' + userId, { method: 'GET' });
   },
-  createService: function (serviceName, userId, regionName, customName, envText) {
+  createService: function (serviceName, userId, regionName, customName, envText, parentInstanceId) {
     return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId, {
       method: 'POST',
-      body: { region_name: regionName, custom_name: customName || null, env: envText || null },
+      body: {
+        region_name: regionName,
+        custom_name: customName || null,
+        env: envText || null,
+        parent_instance_id: parentInstanceId || null,
+      },
     });
   },
   deleteService: function (serviceName, userId, id) {

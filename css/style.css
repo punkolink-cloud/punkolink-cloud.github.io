@@ -742,6 +742,12 @@ tbody tr.row-link:hover {
   padding: var(--space-8) var(--space-4);
 }
 
+/* Inline aside within a .cell-mono value, e.g. "pgvector on my-postgres"
+   — the parent's name stays legible but visually secondary. */
+.cell-hint {
+  color: var(--text-muted);
+}
+
 /* ── status / chips ─────────────────────────────────────────── */
 /* A word ("active" / "stopped"), so sans eyebrow, not mono. The dot
    carries the state colour. */

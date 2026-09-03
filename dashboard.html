@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Punkolink — Dashboard</title>
+  <title>Punkolink — Database</title>
 
   <link rel="stylesheet" href="css/style.css">
 
@@ -47,9 +47,21 @@
         <div class="sidebar-section-label">Workspace</div>
         <a class="sidebar-link active" href="dashboard.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>
+            <ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>
           </svg>
-          <span class="sidebar-link-label">Managed Services</span>
+          <span class="sidebar-link-label">Database</span>
+        </a>
+        <a class="sidebar-link" href="in-memory.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/>
+          </svg>
+          <span class="sidebar-link-label">In-memory</span>
+        </a>
+        <a class="sidebar-link" href="document.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>
+          </svg>
+          <span class="sidebar-link-label">Document</span>
         </a>
         <a class="sidebar-link" href="l3.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -78,7 +90,7 @@
         <div class="page-head">
           <div>
             <div class="page-tag">Managed Services</div>
-            <h1 class="page-title">Services</h1>
+            <h1 class="page-title">Database</h1>
           </div>
           <button class="btn btn-primary" id="addServiceBtn">+ Add Service</button>
         </div>
@@ -121,7 +133,7 @@
       <button class="modal-close" id="addModalClose" aria-label="Close">&times;</button>
       <div class="modal-header">
         <h2 id="addModalTitle">Add Service</h2>
-        <p>5 credits/month per service, billed once a minute starting at the next tick.</p>
+        <p>Billed once a minute starting at the next tick.</p>
       </div>
 
       <div class="banner" id="addModalBanner"></div>
@@ -130,6 +142,11 @@
         <div class="form-group">
           <label class="form-label" for="serviceSelect">Service Type</label>
           <select class="form-select" id="serviceSelect" required></select>
+        </div>
+        <div class="form-group hidden" id="parentGroup">
+          <label class="form-label" for="parentSelect">Attach To</label>
+          <select class="form-select" id="parentSelect"></select>
+          <p class="form-hint hidden" id="parentHint"></p>
         </div>
         <div class="form-group">
           <label class="form-label" for="regionSelect">Region</label>
@@ -156,12 +173,14 @@
   <script src="js/session.js"></script>
   <script>
     // Google sign-in returns here (POST_LOGIN_REDIRECT) with the JWT in
-    // the URL fragment (#token=…). Adopt + scrub it BEFORE dashboard.js
-    // runs its Session.requireAuth() check — otherwise the just-signed-in
-    // user is bounced to login before the token is ever read.
+    // the URL fragment (#token=…). Adopt + scrub it BEFORE
+    // managed_services.js runs its Session.requireAuth() check —
+    // otherwise the just-signed-in user is bounced to login before the
+    // token is ever read.
     Session.adoptTokenFromHash();
+    window.MANAGED_SERVICES_CATEGORY = 'database';
   </script>
-  <script src="js/dashboard.js"></script>
+  <script src="js/managed_services.js"></script>
   <script src="js/sidebar.js"></script>
 </body>
 </html>
