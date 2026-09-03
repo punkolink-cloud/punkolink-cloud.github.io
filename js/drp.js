@@ -20,6 +20,10 @@
   const TIER_NAMES = { 'run-micro': 'Micro', 'run-medium': 'Medium', 'run-linux': 'Linux' };
   const TIER_MEMORY = { 'run-micro': '128 MB', 'run-medium': '256 MB', 'run-linux': '512 MB' };
 
+  function displayName(name) {
+    return TIER_NAMES[name] || name;
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
@@ -40,9 +44,43 @@
   const countEl = document.getElementById('containerCount');
   const drpBanner = document.getElementById('drpBanner');
 
+  let allServices = []; // every instance this user has, any category — for the panel's custom-IP "used by" check
+
+  let expandedId = null;
+  let expandedRowEl = null;
+
+  function panelOpts(service) {
+    return {
+      session: session,
+      isRunService: true,
+      displayName: displayName,
+      getAllServices: function () { return allServices; },
+      refresh: loadContainers,
+      onDeleted: function () {
+        expandedId = null;
+        expandedRowEl = null;
+        loadContainers();
+      },
+    };
+  }
+
+  async function toggleExpand(service, tr) {
+    if (expandedId === service.id) {
+      const closing = expandedRowEl;
+      expandedId = null;
+      expandedRowEl = null;
+      if (closing) await ServicePanel.close(closing);
+      return;
+    }
+    if (expandedRowEl) await ServicePanel.close(expandedRowEl);
+    expandedId = service.id;
+    expandedRowEl = ServicePanel.open(tr, service, panelOpts(service));
+  }
+
   function renderRow(service) {
     const tr = document.createElement('tr');
     tr.className = 'row-link';
+    tr.dataset.id = service.id;
 
     const isActive = service.status === 'active';
     const statusClass = isActive ? 'is-active' : 'is-stopped';
@@ -81,7 +119,7 @@
     actionsCell.appendChild(deleteBtn);
 
     tr.addEventListener('click', function () {
-      window.location.href = 'service.html?id=' + service.id;
+      toggleExpand(service, tr);
     });
 
     return tr;
@@ -155,15 +193,19 @@
       return;
     }
 
+    allServices = (servicesResult.data && servicesResult.data.services) || [];
+
     // Only the DRP compute tiers belong here; managed images live under
     // the Workspace sections.
-    const services = ((servicesResult.data && servicesResult.data.services) || []).filter(function (s) {
+    const services = allServices.filter(function (s) {
       return RUN_SERVICES.indexOf(s.service_name) !== -1;
     });
     countEl.textContent = services.length + (services.length === 1 ? ' container' : ' containers');
 
     if (services.length === 0) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No containers yet. Pick a tier above to get started.</td></tr>';
+      expandedId = null;
+      expandedRowEl = null;
       return;
     }
 
@@ -171,6 +213,29 @@
     services.forEach(function (service) {
       tbody.appendChild(renderRow(service));
     });
+
+    reattachExpanded(services);
+  }
+
+  // A save/toggle/etc inside the open panel calls loadContainers(),
+  // which just rebuilt the whole table — put the panel back if its
+  // container is still there, with fresh data and no re-entrance
+  // animation.
+  function reattachExpanded(services) {
+    expandedRowEl = null;
+    if (expandedId == null) return;
+
+    const service = services.filter(function (s) { return s.id === expandedId; })[0];
+    const row = Array.prototype.filter.call(tbody.children, function (tr) {
+      return tr.dataset.id === String(expandedId);
+    })[0];
+
+    if (!service || !row) {
+      expandedId = null;
+      return;
+    }
+
+    expandedRowEl = ServicePanel.attach(row, service, panelOpts(service));
   }
 
   // ── inline create panel ──

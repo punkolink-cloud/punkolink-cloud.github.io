@@ -16,7 +16,6 @@
     pgvector: 'pgvector',
     'apache-age': 'Apache AGE',
     paradedb: 'ParadeDB',
-    redis: 'Redis',
     valkey: 'Valkey',
     nats: 'NATS',
     seaweedfs: 'SeaweedFS',
@@ -76,9 +75,41 @@
     return set;
   }
 
+  let expandedId = null;
+  let expandedRowEl = null;
+
+  function panelOpts(service) {
+    return {
+      session: session,
+      isRunService: false,
+      displayName: displayName,
+      getAllServices: function () { return allServices; },
+      refresh: loadServices,
+      onDeleted: function () {
+        expandedId = null;
+        expandedRowEl = null;
+        loadServices();
+      },
+    };
+  }
+
+  async function toggleExpand(service, tr) {
+    if (expandedId === service.id) {
+      const closing = expandedRowEl;
+      expandedId = null;
+      expandedRowEl = null;
+      if (closing) await ServicePanel.close(closing);
+      return;
+    }
+    if (expandedRowEl) await ServicePanel.close(expandedRowEl);
+    expandedId = service.id;
+    expandedRowEl = ServicePanel.open(tr, service, panelOpts(service));
+  }
+
   function renderRow(service, extendedIds) {
     const tr = document.createElement('tr');
     tr.className = 'row-link';
+    tr.dataset.id = service.id;
 
     const isActive = service.status === 'active';
     const statusClass = isActive ? 'is-active' : 'is-stopped';
@@ -127,7 +158,7 @@
     actionsCell.appendChild(deleteBtn);
 
     tr.addEventListener('click', function () {
-      window.location.href = 'service.html?id=' + service.id;
+      toggleExpand(service, tr);
     });
 
     return tr;
@@ -207,6 +238,8 @@
 
     if (services.length === 0) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No services yet. Pick one above to get started.</td></tr>';
+      expandedId = null;
+      expandedRowEl = null;
       return;
     }
 
@@ -215,6 +248,28 @@
     services.forEach(function (service) {
       tbody.appendChild(renderRow(service, extendedIds));
     });
+
+    reattachExpanded(services);
+  }
+
+  // A save/toggle/etc inside the open panel calls loadServices(), which
+  // just rebuilt the whole table — put the panel back if its service is
+  // still there, with fresh data and no re-entrance animation.
+  function reattachExpanded(services) {
+    expandedRowEl = null;
+    if (expandedId == null) return;
+
+    const service = services.filter(function (s) { return s.id === expandedId; })[0];
+    const row = Array.prototype.filter.call(tbody.children, function (tr) {
+      return tr.dataset.id === String(expandedId);
+    })[0];
+
+    if (!service || !row) {
+      expandedId = null;
+      return;
+    }
+
+    expandedRowEl = ServicePanel.attach(row, service, panelOpts(service));
   }
 
   // ── inline create panel ──

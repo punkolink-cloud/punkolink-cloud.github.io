@@ -833,6 +833,34 @@ tbody tr.row-link:hover {
   padding: var(--space-8) var(--space-4);
 }
 
+/* ── inline row-detail panel (Database/In-memory/Document/DRP) ─── */
+.row-detail td {
+  padding: 0;
+}
+
+/* Same 0fr -> 1fr height-animation technique as .create-panel, scoped
+   to one table row instead of the page. */
+.row-detail-outer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.row-detail-outer.is-open {
+  grid-template-rows: 1fr;
+}
+
+.row-detail-inner {
+  overflow: hidden;
+}
+
+.row-detail-body {
+  padding: var(--space-6);
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
 /* Inline aside within a .cell-mono value, e.g. "pgvector on my-postgres"
    — the parent's name stays legible but visually secondary. */
 .cell-hint {
