@@ -64,11 +64,11 @@
           </svg>
           <span class="sidebar-link-label">Middleware</span>
         </a>
-        <a class="sidebar-link" href="backends.html">
+        <a class="sidebar-link" href="executable.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/><path d="M8 7h.01M8 17h.01"/>
           </svg>
-          <span class="sidebar-link-label">Backends</span>
+          <span class="sidebar-link-label">Executable</span>
         </a>
         <a class="sidebar-link active" href="drp.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -117,37 +117,75 @@
 
         <div class="banner" id="drpBanner"></div>
 
-        <div class="service-cards" id="tierCards"></div>
+        <div class="toolbar">
+          <div class="toolbar-info">Run — one container running an Executable you've uploaded</div>
+        </div>
 
-        <div class="create-panel" id="createPanel">
+        <div class="service-cards" id="runCards"></div>
+
+        <div class="create-panel" id="runPanel">
           <div class="create-panel-inner">
             <div class="create-panel-body">
-              <h2 id="createPanelTitle"></h2>
-              <p>Billed once a minute starting at the next tick.</p>
+              <h2>New Run instance</h2>
+              <p>256 MB. Billed once a minute starting at the next tick.</p>
 
-              <div class="banner" id="addContainerBanner"></div>
+              <div class="banner" id="runPanelBanner"></div>
 
-              <form id="addContainerForm">
+              <form id="runForm">
                 <div class="form-group">
-                  <label class="form-label" for="containerNameInput">Name <span class="optional">(optional)</span></label>
-                  <input class="form-input" type="text" id="containerNameInput" placeholder="e.g. api-worker">
+                  <label class="form-label" for="runNameInput">Name <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="runNameInput" placeholder="e.g. api-worker">
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="containerEnvInput">Environment Variables <span class="optional">(optional)</span></label>
-                  <textarea class="form-textarea" id="containerEnvInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
-                  <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
+                  <label class="form-label" for="runExecutableSelect">Executable <span class="optional">(optional)</span></label>
+                  <select class="form-select" id="runExecutableSelect"></select>
+                  <p class="form-hint">Nothing to pick? Upload one first on the <a href="executable.html">Executable</a> page — or leave this on "None" and attach one later.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="runEnvInput">Environment Variables <span class="optional">(optional)</span></label>
+                  <textarea class="form-textarea" id="runEnvInput" rows="4" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
+                  <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> (the container port below) is set automatically.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ports <span class="optional">(optional — leave blank for one automatic port)</span></label>
+                  <div class="port-grid">
+                    <input class="form-input" type="number" id="runPortInput" min="1" max="65535" placeholder="Published port">
+                    <input class="form-input" type="number" id="runPortEndInput" min="1" max="65535" placeholder="…through (optional)">
+                    <input class="form-input" type="number" id="runContainerPortInput" min="1" max="65535" placeholder="Container port">
+                    <input class="form-input" type="number" id="runContainerPortEndInput" min="1" max="65535" placeholder="…through (optional)">
+                  </div>
+                  <p class="form-hint">Published (outside) and container (inside) ports — a range on one side needs the same-width range on the other.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="runIpSelect">Address</label>
+                  <select class="form-select" id="runIpSelect"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="runOnExitSelect">On Exit</label>
+                  <select class="form-select" id="runOnExitSelect">
+                    <option value="restart">Restart</option>
+                    <option value="leave">Leave</option>
+                    <option value="remove">Remove</option>
+                  </select>
+                </div>
+                <div class="form-group" id="runRestartDelayGroup">
+                  <label class="form-label" for="runRestartDelayInput">Restart Delay (seconds)</label>
+                  <input class="form-input" type="number" id="runRestartDelayInput" min="5" max="86400" value="15">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="runStartCommandInput">Start Command <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="runStartCommandInput" placeholder="sh -c '...'">
                 </div>
                 <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" id="addContainerSubmit">Create</button>
+                  <button type="submit" class="btn btn-primary" id="runSubmit">Create</button>
                 </div>
               </form>
-              <p class="form-hint" style="margin-top: var(--space-3);">After it's created, open the container and upload a binary or a zipped Node.js project from its page.</p>
             </div>
           </div>
         </div>
 
         <div class="toolbar">
-          <div class="toolbar-info" id="containerCount"></div>
+          <div class="toolbar-info" id="runCount"></div>
         </div>
 
         <div class="table-wrap">
@@ -155,15 +193,91 @@
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Tier</th>
                 <th>Hostname</th>
                 <th>Port</th>
                 <th>Status</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="containersBody">
-              <tr class="empty-row"><td colspan="6">Loading…</td></tr>
+            <tbody id="runBody">
+              <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="toolbar" style="margin-top: var(--space-8);">
+          <div class="toolbar-info">Isolated Linux environment — a persistent Ubuntu box with SSH access</div>
+        </div>
+
+        <div class="service-cards" id="linuxCards"></div>
+
+        <div class="create-panel" id="linuxPanel">
+          <div class="create-panel-inner">
+            <div class="create-panel-body">
+              <h2>New Isolated Linux environment</h2>
+              <p>512 MB. Billed once a minute starting at the next tick. Full boot (SSH coming up) takes about a minute.</p>
+
+              <div class="banner" id="linuxPanelBanner"></div>
+
+              <form id="linuxForm">
+                <div class="form-group">
+                  <label class="form-label" for="linuxNameInput">Name <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="linuxNameInput" placeholder="e.g. dev-box">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ports <span class="optional">(optional — leave blank for one automatic port)</span></label>
+                  <div class="port-grid">
+                    <input class="form-input" type="number" id="linuxPortInput" min="1" max="65535" placeholder="Published port">
+                    <input class="form-input" type="number" id="linuxPortEndInput" min="1" max="65535" placeholder="…through (optional)">
+                    <input class="form-input" type="number" id="linuxContainerPortInput" min="1" max="65535" placeholder="Container port">
+                    <input class="form-input" type="number" id="linuxContainerPortEndInput" min="1" max="65535" placeholder="…through (optional)">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="linuxIpSelect">Address</label>
+                  <select class="form-select" id="linuxIpSelect"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="linuxSshPortInput">SSH Port <span class="optional">(optional — automatic if left blank)</span></label>
+                  <input class="form-input" type="number" id="linuxSshPortInput" min="1" max="65535" placeholder="Automatic">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="linuxOnExitSelect">On Exit</label>
+                  <select class="form-select" id="linuxOnExitSelect">
+                    <option value="restart">Restart</option>
+                    <option value="leave">Leave</option>
+                    <option value="remove">Remove</option>
+                  </select>
+                </div>
+                <div class="form-group" id="linuxRestartDelayGroup">
+                  <label class="form-label" for="linuxRestartDelayInput">Restart Delay (seconds)</label>
+                  <input class="form-input" type="number" id="linuxRestartDelayInput" min="5" max="86400" value="15">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="linuxSubmit">Create</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-info" id="linuxCount"></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Hostname</th>
+                <th>SSH</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="linuxBody">
+              <tr class="empty-row"><td colspan="5">Loading…</td></tr>
             </tbody>
           </table>
         </div>

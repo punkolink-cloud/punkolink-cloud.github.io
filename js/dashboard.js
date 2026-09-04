@@ -2,7 +2,7 @@
   const session = Session.requireAuth();
   if (!session) return;
 
-  const RUN_SERVICES = ['run-micro', 'run-medium', 'run-linux'];
+  const RUN_SERVICES = ['run', 'run-linux'];
 
   const TYPE_TILES = [
     { key: 'database', label: 'Database', href: 'database.html' },

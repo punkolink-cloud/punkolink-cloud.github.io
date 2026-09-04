@@ -102,8 +102,11 @@ const BackendApi = {
   setEnv: function (serviceName, userId, id, envText) {
     return apiRequest('/env/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: envText, raw: true, headers: { 'Content-Type': 'text/plain' } });
   },
-  setSettings: function (serviceName, userId, id, onExit, startCommand) {
-    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, { method: 'POST', body: { on_exit: onExit, start_command: startCommand || null } });
+  setSettings: function (serviceName, userId, id, onExit, restartDelaySeconds, startCommand) {
+    return apiRequest('/settings/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, {
+      method: 'POST',
+      body: { on_exit: onExit, restart_delay_seconds: restartDelaySeconds || 15, start_command: startCommand || null },
+    });
   },
   setNetwork: function (serviceName, userId, id, customIp, port) {
     return apiRequest('/network/' + encodeURIComponent(serviceName) + '/' + userId + '/' + id, {
@@ -131,6 +134,40 @@ const L3Api = {
   },
   release: function (userId, id) {
     return apiRequest('/addresses/' + userId + '/' + id, { method: 'DELETE' });
+  },
+};
+
+// Executable — the user's own catalog of uploaded binaries/Node.js
+// projects, kept independent of any one DRP instance. Upload once, Host
+// as many times as wanted.
+const ExecutableApi = {
+  list: function (userId) {
+    return apiRequest('/executables/' + userId, { method: 'GET' });
+  },
+  upload: function (userId, name, file) {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('file', file);
+    return apiRequest('/executables/' + userId, { method: 'POST', body: formData, form: true });
+  },
+  remove: function (userId, id) {
+    return apiRequest('/executables/' + userId + '/' + id, { method: 'DELETE' });
+  },
+};
+
+// Run — one DRP container running exactly one Executable, with full
+// control over env vars, port ranges, IP, and crash policy, all at
+// creation time.
+const RunApi = {
+  create: function (userId, options) {
+    return apiRequest('/run/' + userId, { method: 'POST', body: options });
+  },
+};
+
+// Isolated Linux environment — a persistent Ubuntu box with SSH access.
+const LinuxApi = {
+  create: function (userId, options) {
+    return apiRequest('/linux/' + userId, { method: 'POST', body: options });
   },
 };
 

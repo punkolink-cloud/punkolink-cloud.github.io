@@ -8,7 +8,7 @@
   const SERVICE_DISPLAY_NAMES = {
     postgres: 'PostgreSQL', pgvector: 'pgvector', 'apache-age': 'Apache AGE', paradedb: 'ParadeDB',
     valkey: 'Valkey', seaweedfs: 'SeaweedFS',
-    'run-micro': 'Micro', 'run-medium': 'Medium', 'run-linux': 'Linux',
+    run: 'Run', 'run-linux': 'Isolated Linux',
     l7: 'L7', nginx: 'Nginx',
   };
   function serviceDisplayName(name) {

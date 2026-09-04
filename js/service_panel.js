@@ -45,7 +45,16 @@ const ServicePanel = (function () {
                     '<div class="kv-row"><span class="kv-key">Instance ID</span><span class="kv-val" data-el="kvId"></span></div>' +
                     '<div class="kv-row"><span class="kv-key">Hostname</span><span class="kv-val" data-el="kvHostname"></span></div>' +
                     '<div class="kv-row"><span class="kv-key">Port</span><span class="kv-val" data-el="kvPort"></span></div>' +
+                    '<div class="kv-row hidden" data-el="kvContainerPortRow"><span class="kv-key">Container Port</span><span class="kv-val" data-el="kvContainerPort"></span></div>' +
                   '</div>' +
+                '</div>' +
+                '<div class="detail-card hidden" data-el="sshSection">' +
+                  '<h3>SSH</h3>' +
+                  '<div class="kv-list">' +
+                    '<div class="kv-row"><span class="kv-key">Port</span><span class="kv-val" data-el="kvSshPort"></span></div>' +
+                    '<div class="kv-row"><span class="kv-key">Password</span><span class="kv-val" data-el="kvSshPassword"></span></div>' +
+                  '</div>' +
+                  '<button class="btn btn-ghost btn-sm" data-el="sshRevealBtn" type="button" style="margin-top: var(--space-3);">Show password</button>' +
                 '</div>' +
                 '<div class="detail-card">' +
                   '<h3>Actions</h3>' +
@@ -91,8 +100,14 @@ const ServicePanel = (function () {
                       '<label class="form-label">On Exit</label>' +
                       '<select class="form-select" data-el="onExitSelect">' +
                         '<option value="restart">Restart</option>' +
+                        '<option value="leave">Leave</option>' +
                         '<option value="remove">Remove</option>' +
                       '</select>' +
+                    '</div>' +
+                    '<div class="form-group hidden" data-el="restartDelayGroup">' +
+                      '<label class="form-label">Restart Delay (seconds)</label>' +
+                      '<input class="form-input" type="number" data-el="restartDelayInput" min="5" max="86400">' +
+                      '<p class="form-hint">How long to wait after a crash before trying again.</p>' +
                     '</div>' +
                     '<div class="form-group hidden" data-el="startCommandGroup">' +
                       '<label class="form-label">Start Command <span class="optional">(optional)</span></label>' +
@@ -146,6 +161,7 @@ const ServicePanel = (function () {
   function build(service, opts) {
     const displayName = opts.displayName || function (name) { return name; };
     const isRunService = !!opts.isRunService;
+    const isLinuxService = service.service_name === 'run-linux';
 
     const tr = document.createElement('tr');
     tr.className = 'row-detail';
@@ -168,14 +184,42 @@ const ServicePanel = (function () {
 
     const isActive = service.status === 'active';
 
+    function formatPortRange(start, end) {
+      if (start == null) return '—';
+      return (end != null && end !== start) ? (start + '–' + end) : String(start);
+    }
+
     el.kvId.textContent = service.id;
     el.kvHostname.textContent = (service.vm && service.vm.hostname) || '—';
-    el.kvPort.textContent = service.port != null ? service.port : '—';
+    el.kvPort.textContent = formatPortRange(service.port, service.port_end);
 
-    el.toggleBtn.textContent = isActive ? (isRunService ? 'Stop' : 'Turn Off') : (isRunService ? 'Run' : 'Turn On');
-    el.restartBtn.classList.toggle('hidden', !(isRunService && isActive));
+    const containerStart = service.container_port != null ? service.container_port : service.port;
+    const containerEnd = service.container_port_end != null ? service.container_port_end : containerStart;
+    const containerDiffers =
+      (service.container_port != null && service.container_port !== service.port) ||
+      (service.container_port_end != null && service.container_port_end !== service.port_end);
+    el.kvContainerPortRow.classList.toggle('hidden', !containerDiffers);
+    if (containerDiffers) {
+      el.kvContainerPort.textContent = formatPortRange(containerStart, containerEnd);
+    }
 
-    if (isRunService && service.needs_restart) {
+    el.sshSection.classList.toggle('hidden', !isLinuxService);
+    if (isLinuxService) {
+      el.kvSshPort.textContent = service.ssh_port != null ? service.ssh_port : '—';
+      const masked = '••••••••••••';
+      el.kvSshPassword.textContent = masked;
+      let revealed = false;
+      el.sshRevealBtn.addEventListener('click', function () {
+        revealed = !revealed;
+        el.kvSshPassword.textContent = revealed ? (service.ssh_password || '—') : masked;
+        el.sshRevealBtn.textContent = revealed ? 'Hide password' : 'Show password';
+      });
+    }
+
+    el.toggleBtn.textContent = isActive ? (isRunService || isLinuxService ? 'Stop' : 'Turn Off') : (isRunService ? 'Run' : 'Turn On');
+    el.restartBtn.classList.toggle('hidden', !((isRunService || isLinuxService) && isActive));
+
+    if ((isRunService || isLinuxService) && service.needs_restart) {
       showBanner(el.restartNotice, 'Configuration changed since this container was last started. Restart it to apply the changes.', false);
     }
 
@@ -188,6 +232,13 @@ const ServicePanel = (function () {
 
     el.envText.value = envMapToText(service.env_vars);
     el.onExitSelect.value = service.on_exit || 'restart';
+    el.restartDelayInput.value = service.restart_delay_seconds != null ? service.restart_delay_seconds : 15;
+
+    function syncRestartDelayField() {
+      el.restartDelayGroup.classList.toggle('hidden', el.onExitSelect.value !== 'restart');
+    }
+    syncRestartDelayField();
+    el.onExitSelect.addEventListener('change', syncRestartDelayField);
 
     el.startCommandGroup.classList.toggle('hidden', !isRunService);
     el.startCommandInput.value = service.start_command || '';
@@ -322,8 +373,9 @@ const ServicePanel = (function () {
     el.settingsForm.addEventListener('submit', async function (e) {
       e.preventDefault();
       const onExit = el.onExitSelect.value;
+      const restartDelay = parseInt(el.restartDelayInput.value, 10) || 15;
       const startCommand = isRunService ? el.startCommandInput.value.trim() : '';
-      const result = await BackendApi.setSettings(service.service_name, opts.session.userId, service.id, onExit, startCommand);
+      const result = await BackendApi.setSettings(service.service_name, opts.session.userId, service.id, onExit, restartDelay, startCommand);
       if (!result.ok) {
         showBanner(el.banner, (result.data && result.data.reason) || 'Failed to save settings.', true);
         return;

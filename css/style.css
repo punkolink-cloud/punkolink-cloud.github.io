@@ -479,6 +479,21 @@ main {
   color: var(--text-muted);
 }
 
+/* Four port inputs (external start/end, internal start/end) side by
+   side on wide viewports, stacked on narrow ones -- see drp.html's Run
+   and Isolated Linux creation forms. */
+.port-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .port-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .form-input,
 .form-textarea,
 .form-select {
