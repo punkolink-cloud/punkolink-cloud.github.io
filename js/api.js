@@ -74,17 +74,16 @@ const BackendApi = {
   catalog: function () {
     return apiRequest('/catalog', { method: 'GET' });
   },
-  regions: function () {
-    return apiRequest('/regions', { method: 'GET' });
-  },
   listServices: function (userId) {
     return apiRequest('/services/' + userId, { method: 'GET' });
   },
-  createService: function (serviceName, userId, regionName, customName, envText, parentInstanceId) {
+  // Placement (which region a new instance lands in) is entirely the
+  // backend's call — the console never asks, so there's no regionName
+  // parameter here to pass one.
+  createService: function (serviceName, userId, customName, envText, parentInstanceId) {
     return apiRequest('/services/' + encodeURIComponent(serviceName) + '/' + userId, {
       method: 'POST',
       body: {
-        region_name: regionName,
         custom_name: customName || null,
         env: envText || null,
         parent_instance_id: parentInstanceId || null,
@@ -120,14 +119,15 @@ const BackendApi = {
 };
 
 // L3 — rented IPv4/IPv6 addresses. The address pool lives on a DRP node;
-// the orchestrator tracks which ones an account holds and bills for them.
+// the orchestrator tracks which ones an account holds and bills for
+// them. Region is never the console's concern — every call here omits
+// it and gets the backend's own pick.
 const L3Api = {
-  list: function (userId, regionName) {
-    const query = regionName ? '?region_name=' + encodeURIComponent(regionName) : '';
-    return apiRequest('/addresses/' + userId + query, { method: 'GET' });
+  list: function (userId) {
+    return apiRequest('/addresses/' + userId, { method: 'GET' });
   },
-  rent: function (userId, regionName, family) {
-    return apiRequest('/addresses/' + userId, { method: 'POST', body: { region_name: regionName, family: family } });
+  rent: function (userId, family) {
+    return apiRequest('/addresses/' + userId, { method: 'POST', body: { family: family } });
   },
   release: function (userId, id) {
     return apiRequest('/addresses/' + userId + '/' + id, { method: 'DELETE' });

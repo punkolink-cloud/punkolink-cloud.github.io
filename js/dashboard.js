@@ -10,7 +10,6 @@
     { key: 'document', label: 'Document', href: 'document.html' },
     { key: 'middleware', label: 'Middleware', href: 'middleware.html' },
     { key: 'drp', label: 'DRP Compute', href: 'drp.html' },
-    { key: 'network', label: 'WireGuard', href: 'network.html' },
     { key: 'ipv4', label: 'IPv4 Addresses', href: 'network.html' },
     { key: 'ipv6', label: 'IPv6 Addresses', href: 'network.html' },
     // Anything with no category (e.g. meilisearch/qdrant instances,
@@ -69,7 +68,7 @@
       services.filter(function (s) { return s.status === 'active'; }).length;
     document.getElementById('statAddresses').textContent = addresses.length;
 
-    const counts = { database: 0, 'in-memory': 0, document: 0, middleware: 0, drp: 0, network: 0, ipv4: 0, ipv6: 0, other: 0 };
+    const counts = { database: 0, 'in-memory': 0, document: 0, middleware: 0, drp: 0, ipv4: 0, ipv6: 0, other: 0 };
 
     services.forEach(function (s) {
       if (RUN_SERVICES.indexOf(s.service_name) !== -1) {

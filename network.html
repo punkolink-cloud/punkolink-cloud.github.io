@@ -132,10 +132,6 @@
               <div class="banner" id="rentPanelBanner"></div>
 
               <form id="rentForm">
-                <div class="form-group">
-                  <label class="form-label" for="regionSelect">Region</label>
-                  <select class="form-select" id="regionSelect" required></select>
-                </div>
                 <div class="form-actions">
                   <button type="submit" class="btn btn-primary" id="rentSubmit">Rent</button>
                 </div>
@@ -154,7 +150,6 @@
               <tr>
                 <th>Address</th>
                 <th>Version</th>
-                <th>Region</th>
                 <th>Routes To</th>
                 <th>Proto / Port</th>
                 <th>Status</th>
@@ -162,67 +157,7 @@
               </tr>
             </thead>
             <tbody id="addressesBody">
-              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="toolbar" style="margin-top: var(--space-8);">
-          <div class="toolbar-info">VPN</div>
-        </div>
-
-        <div class="service-cards" id="wgCards"></div>
-
-        <div class="create-panel" id="wgPanel">
-          <div class="create-panel-inner">
-            <div class="create-panel-body">
-              <h2>New WireGuard</h2>
-              <p>Billed once a minute starting at the next tick.</p>
-
-              <div class="banner" id="wgPanelBanner"></div>
-
-              <form id="wgForm">
-                <div class="form-group">
-                  <label class="form-label" for="wgRegionSelect">Region</label>
-                  <select class="form-select" id="wgRegionSelect" required></select>
-                  <p class="form-hint">The virtual machine within the region is picked automatically.</p>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="wgNameInput">Name <span class="optional">(optional)</span></label>
-                  <input class="form-input" type="text" id="wgNameInput" placeholder="e.g. team-vpn">
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="wgEnvInput">Environment Variables <span class="optional">(optional)</span></label>
-                  <textarea class="form-textarea" id="wgEnvInput" rows="4" placeholder="PEERS=5&#10;PEERDNS=auto"></textarea>
-                  <p class="form-hint">One <code>KEY=value</code> pair per line — e.g. <code>PEERS</code>, <code>SERVERURL</code>. <code>PORT</code> is assigned automatically and can't be set here.</p>
-                </div>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" id="wgSubmit">Create</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div class="toolbar">
-          <div class="toolbar-info" id="wgCount"></div>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Service</th>
-                <th>Region</th>
-                <th>Hostname</th>
-                <th>Port</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="wgBody">
-              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+              <tr class="empty-row"><td colspan="6">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -236,7 +171,6 @@
 
   <script src="js/api.js"></script>
   <script src="js/session.js"></script>
-  <script src="js/service_panel.js"></script>
   <script src="js/network.js"></script>
   <script src="js/sidebar.js"></script>
 </body>

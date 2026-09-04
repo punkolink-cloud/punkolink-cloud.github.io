@@ -21,7 +21,7 @@ const ServicePanel = (function () {
     managed_by_extension: 'This instance carries an extension — stop/start it from the extension’s own row instead.',
     has_active_extension: 'Remove its extension first, then delete it.',
     no_payload_uploaded: 'Upload a payload below before pressing Run.',
-    address_not_rented: 'That address isn’t one you rent in this region anymore. Pick another, or Default.',
+    address_not_rented: 'That address isn’t one you rent anymore. Pick another, or Default.',
   };
 
   function reasonText(result, fallback) {
@@ -30,7 +30,7 @@ const ServicePanel = (function () {
   }
 
   const TEMPLATE = '' +
-    '<td colspan="7">' +
+    '<td colspan="6">' +
       '<div class="row-detail-outer">' +
         '<div class="row-detail-inner">' +
           '<div class="row-detail-body">' +
@@ -43,7 +43,6 @@ const ServicePanel = (function () {
                   '<h3>Overview</h3>' +
                   '<div class="kv-list">' +
                     '<div class="kv-row"><span class="kv-key">Instance ID</span><span class="kv-val" data-el="kvId"></span></div>' +
-                    '<div class="kv-row"><span class="kv-key">Region</span><span class="kv-val" data-el="kvRegion"></span></div>' +
                     '<div class="kv-row"><span class="kv-key">Hostname</span><span class="kv-val" data-el="kvHostname"></span></div>' +
                     '<div class="kv-row"><span class="kv-key">Port</span><span class="kv-val" data-el="kvPort"></span></div>' +
                   '</div>' +
@@ -107,7 +106,7 @@ const ServicePanel = (function () {
                 '</div>' +
                 '<div class="section-card">' +
                   '<h3>Networking</h3>' +
-                  '<p class="section-desc">By default the container is reachable only through this node’s address, on an automatically assigned port. Point it at an address you rent under <a href="network.html">Network</a> in this service’s region to publish it there instead — then you set the port.</p>' +
+                  '<p class="section-desc">By default the container is reachable only through this node’s address, on an automatically assigned port. Point it at an address you rent under <a href="network.html">Network</a> to publish it there instead — then you set the port.</p>' +
                   '<form data-el="networkForm">' +
                     '<div class="form-group" data-el="customIpGroup">' +
                       '<label class="form-label">Address</label>' +
@@ -170,7 +169,6 @@ const ServicePanel = (function () {
     const isActive = service.status === 'active';
 
     el.kvId.textContent = service.id;
-    el.kvRegion.textContent = service.region || '—';
     el.kvHostname.textContent = (service.vm && service.vm.hostname) || '—';
     el.kvPort.textContent = service.port != null ? service.port : '—';
 
@@ -202,9 +200,8 @@ const ServicePanel = (function () {
         : '<div class="kv-row"><span class="kv-key">Status</span><span class="kv-val">No payload uploaded yet</span></div>';
     }
 
-    // ── networking: pick a rented address in this region, or Default ──
+    // ── networking: pick a rented address, or Default ──
     function renderNetworking(heldAddresses) {
-      const inRegion = heldAddresses.filter(function (a) { return a.region === service.region; });
       const usedBy = {};
       (opts.getAllServices() || []).forEach(function (s) {
         if (String(s.id) !== String(service.id) && s.custom_ip) {
@@ -214,12 +211,11 @@ const ServicePanel = (function () {
 
       el.customPortInput.value = service.port != null ? service.port : '';
 
-      if (inRegion.length === 0 && !service.custom_ip) {
+      if (heldAddresses.length === 0 && !service.custom_ip) {
         el.customIpGroup.classList.add('hidden');
         el.customIpHint.classList.remove('hidden');
         el.customIpHint.innerHTML =
-          'No rented addresses in ' + escapeHtml(service.region || 'this region') +
-          '. Rent one under <a href="network.html">Network</a> and it shows up here.';
+          'No rented addresses yet. Rent one under <a href="network.html">Network</a> and it shows up here.';
         el.customPortInput.disabled = true;
         return;
       }
@@ -229,7 +225,7 @@ const ServicePanel = (function () {
 
       const seen = {};
       let optionsHtml = '<option value="">Default — node address, automatic port</option>';
-      inRegion.forEach(function (a) {
+      heldAddresses.forEach(function (a) {
         seen[a.address] = true;
         const used = usedBy[a.address];
         optionsHtml +=
@@ -249,7 +245,7 @@ const ServicePanel = (function () {
       el.customPortInput.disabled = el.customIpSelect.value === '';
     }
 
-    L3Api.list(opts.session.userId, service.region || '').then(function (result) {
+    L3Api.list(opts.session.userId).then(function (result) {
       const addresses = (result.ok && result.data && result.data.addresses) || [];
       renderNetworking(addresses);
     });

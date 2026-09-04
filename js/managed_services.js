@@ -125,7 +125,6 @@
     tr.innerHTML =
       '<td>' + escapeHtml(service.custom_name || displayName(service.service_name)) + '</td>' +
       '<td class="cell-mono">' + nameCell + '</td>' +
-      '<td class="cell-mono">' + escapeHtml(service.region || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.port != null ? String(service.port) : '—') + '</td>' +
       '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(service.status) + '</span></td>' +
@@ -216,7 +215,7 @@
     ]);
 
     if (!servicesResult.ok || !catalogResult.ok) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Couldn’t load services. Is the backend running?</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Couldn’t load services. Is the backend running?</td></tr>';
       countEl.textContent = '';
       return;
     }
@@ -236,7 +235,7 @@
     countEl.textContent = services.length + (services.length === 1 ? ' service' : ' services');
 
     if (services.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No services yet. Pick one above to get started.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No services yet. Pick one above to get started.</td></tr>';
       expandedId = null;
       expandedRowEl = null;
       return;
@@ -275,7 +274,6 @@
   const createPanel = document.getElementById('createPanel');
   const createPanelTitle = document.getElementById('createPanelTitle');
   const addModalBanner = document.getElementById('addModalBanner');
-  const regionSelect = document.getElementById('regionSelect');
   const customNameInput = document.getElementById('customNameInput');
   const envTextInput = document.getElementById('envTextInput');
   const addServiceForm = document.getElementById('addServiceForm');
@@ -352,8 +350,6 @@
   addServiceForm.addEventListener('submit', async function (e) {
     e.preventDefault();
     if (!selectedService) return;
-    const regionName = regionSelect.value;
-    if (!regionName) return;
     if (!parentGroup.classList.contains('hidden') && !parentSelect.value) return;
 
     addServiceSubmit.disabled = true;
@@ -363,7 +359,6 @@
     const result = await BackendApi.createService(
       selectedService,
       session.userId,
-      regionName,
       customNameInput.value.trim(),
       envTextInput.value,
       parentGroup.classList.contains('hidden') ? null : parentSelect.value
@@ -381,18 +376,5 @@
     loadServices();
   });
 
-  async function init() {
-    const regionsResult = await BackendApi.regions();
-    if (!regionsResult.ok) {
-      regionSelect.innerHTML = '<option>Unavailable</option>';
-    } else {
-      const regionNames = (regionsResult.data && regionsResult.data.regions) || [];
-      regionSelect.innerHTML = regionNames.map(function (name) {
-        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
-      }).join('');
-    }
-    loadServices();
-  }
-
-  init();
+  loadServices();
 })();

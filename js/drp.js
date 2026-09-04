@@ -91,7 +91,6 @@
     tr.innerHTML =
       '<td>' + escapeHtml(service.custom_name || service.service_name) + '</td>' +
       '<td class="cell-mono">' + escapeHtml(tierLabel(service.service_name)) + '</td>' +
-      '<td class="cell-mono">' + escapeHtml(service.region || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(service.port != null ? String(service.port) : '—') + '</td>' +
       '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(statusText) + '</span></td>' +
@@ -188,7 +187,7 @@
     }
 
     if (!servicesResult.ok) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Couldn’t load containers. Is the backend running?</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Couldn’t load containers. Is the backend running?</td></tr>';
       countEl.textContent = '';
       return;
     }
@@ -203,7 +202,7 @@
     countEl.textContent = services.length + (services.length === 1 ? ' container' : ' containers');
 
     if (services.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No containers yet. Pick a tier above to get started.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No containers yet. Pick a tier above to get started.</td></tr>';
       expandedId = null;
       expandedRowEl = null;
       return;
@@ -242,7 +241,6 @@
   const createPanel = document.getElementById('createPanel');
   const createPanelTitle = document.getElementById('createPanelTitle');
   const addModalBanner = document.getElementById('addContainerBanner');
-  const regionSelect = document.getElementById('containerRegionSelect');
   const nameInput = document.getElementById('containerNameInput');
   const envInput = document.getElementById('containerEnvInput');
   const addForm = document.getElementById('addContainerForm');
@@ -278,8 +276,7 @@
 
   addForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const regionName = regionSelect.value;
-    if (!selectedTier || !regionName) return;
+    if (!selectedTier) return;
 
     addSubmit.disabled = true;
     addSubmit.textContent = 'Creating…';
@@ -288,7 +285,6 @@
     const result = await BackendApi.createService(
       selectedTier,
       session.userId,
-      regionName,
       nameInput.value.trim(),
       envInput.value
     );
@@ -306,18 +302,5 @@
     loadContainers();
   });
 
-  async function init() {
-    const regionsResult = await BackendApi.regions();
-    if (!regionsResult.ok) {
-      regionSelect.innerHTML = '<option>Unavailable</option>';
-    } else {
-      const regionNames = (regionsResult.data && regionsResult.data.regions) || [];
-      regionSelect.innerHTML = regionNames.map(function (name) {
-        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
-      }).join('');
-    }
-    loadContainers();
-  }
-
-  init();
+  loadContainers();
 })();
