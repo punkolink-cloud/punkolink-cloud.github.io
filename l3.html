@@ -153,89 +153,16 @@
             <thead>
               <tr>
                 <th>Address</th>
-                <th>Type</th>
+                <th>Version</th>
                 <th>Region</th>
-                <th>Rented</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="ipsBody">
-              <tr class="empty-row"><td colspan="5">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="toolbar" style="margin-top: var(--space-8);">
-          <div class="toolbar-info">Network routes</div>
-        </div>
-
-        <div class="service-cards" id="routeCards"></div>
-
-        <div class="create-panel" id="routePanel">
-          <div class="create-panel-inner">
-            <div class="create-panel-body">
-              <h2 id="routePanelTitle"></h2>
-              <p>Changes are applied to the target container's firewall rules right away.</p>
-
-              <div class="banner" id="routePanelBanner"></div>
-
-              <form id="routeForm">
-                <div class="form-group hidden" id="routeAddressGroup">
-                  <label class="form-label" for="routeAddressSelect">Address</label>
-                  <select class="form-select" id="routeAddressSelect"></select>
-                  <p class="form-hint hidden" id="routeAddressHint"></p>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="routeInstanceSelect">Routes To</label>
-                  <select class="form-select" id="routeInstanceSelect"></select>
-                  <p class="form-hint">Only instances still on their default address can take a new route.</p>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="routeProtocolSelect">Protocol</label>
-                  <select class="form-select" id="routeProtocolSelect">
-                    <option value="tcp">TCP</option>
-                    <option value="udp">UDP</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="routePortInput">Port</label>
-                  <input class="form-input" type="number" id="routePortInput" min="1" max="65535" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="routeWhitelistInput">Source IP Whitelist <span class="optional">(optional)</span></label>
-                  <textarea class="form-textarea" id="routeWhitelistInput" rows="2" placeholder="One IP or CIDR per line"></textarea>
-                  <p class="form-hint">If set, only these sources reach it — the blacklist below is ignored.</p>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="routeBlacklistInput">Source IP Blacklist <span class="optional">(optional)</span></label>
-                  <textarea class="form-textarea" id="routeBlacklistInput" rows="2" placeholder="One IP or CIDR per line"></textarea>
-                </div>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" id="routeSubmit">Create</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>IP Ver.</th>
-                <th>Address</th>
-                <th>Proto</th>
-                <th>Port</th>
-                <th>Whitelist</th>
-                <th>Blacklist</th>
                 <th>Routes To</th>
-                <th>Enabled</th>
+                <th>Proto / Port</th>
+                <th>Status</th>
                 <th></th>
               </tr>
             </thead>
-            <tbody id="routesBody">
-              <tr class="empty-row"><td colspan="10">Loading…</td></tr>
+            <tbody id="addressesBody">
+              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
             </tbody>
           </table>
         </div>

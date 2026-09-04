@@ -134,20 +134,18 @@ const L3Api = {
   },
 };
 
-// L3 — network routes: how a service instance is actually reachable
-// (its default address, or a rented one on its own protocol/port/ACL),
-// enforced on the target's DRP node via iptables.
+// L3 — network routes: each rented address's single route (its
+// protocol/port/ACL and which of the user's own instances it forwards
+// to), enforced on the target's DRP node via iptables. Unified with the
+// address itself: GET /routes returns every held address, each already
+// carrying its route (or null if it hasn't been configured yet).
 const RouteApi = {
   list: function (userId) {
     return apiRequest('/routes/' + userId, { method: 'GET' });
   },
-  create: function (userId, body) {
-    return apiRequest('/routes/' + userId, { method: 'POST', body: body });
-  },
-  update: function (userId, id, body) {
-    return apiRequest('/routes/' + userId + '/' + id, { method: 'POST', body: body });
-  },
-  release: function (userId, id) {
-    return apiRequest('/routes/' + userId + '/' + id, { method: 'DELETE' });
+  // Creates the address's route if it doesn't have one yet, otherwise
+  // replaces its configuration wholesale — one call either way.
+  update: function (userId, addressId, body) {
+    return apiRequest('/routes/' + userId + '/addresses/' + addressId, { method: 'POST', body: body });
   },
 };
