@@ -10,6 +10,7 @@
     postgres: 'PostgreSQL', pgvector: 'pgvector', 'apache-age': 'Apache AGE', paradedb: 'ParadeDB',
     valkey: 'Valkey', nats: 'NATS', seaweedfs: 'SeaweedFS',
     'run-micro': 'Micro', 'run-medium': 'Medium', 'run-linux': 'Linux',
+    wireguard: 'WireGuard', l7: 'L7', nginx: 'Nginx',
   };
   function serviceDisplayName(name) {
     return SERVICE_DISPLAY_NAMES[name] || name;
@@ -53,10 +54,11 @@
   async function loadRegions() {
     const result = await BackendApi.regions();
     const names = (result.ok && result.data && result.data.regions) || [];
-    regionSelect.innerHTML = names.map(function (name) {
+    const options = names.map(function (name) {
       return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
-    }).join('');
-    if (names.length === 0) regionSelect.innerHTML = '<option value="">No regions</option>';
+    }).join('') || '<option value="">No regions</option>';
+    regionSelect.innerHTML = options;
+    document.getElementById('wgRegionSelect').innerHTML = options;
   }
 
   // ── Rent Address: cards + inline panel ──
@@ -345,6 +347,10 @@
     const servicesResult = await BackendApi.listServices(session.userId);
     services = (servicesResult.ok && servicesResult.data && servicesResult.data.services) || [];
 
+    wgInstances = services.filter(function (s) { return s.service_name === 'wireguard'; });
+    renderWgCards();
+    renderWgTable();
+
     const result = await RouteApi.list(session.userId);
     if (!result.ok) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Couldn’t load addresses. Is the backend running?</td></tr>';
@@ -380,6 +386,181 @@
     }
 
     renderRentCards();
+  }
+
+  // ── WireGuard: single card + inline create panel + its own table,
+  // rows expanded via the shared ServicePanel (same as Database/
+  // In-memory/Document/DRP). ──
+  const wgCardsEl = document.getElementById('wgCards');
+  const wgPanel = document.getElementById('wgPanel');
+  const wgPanelBanner = document.getElementById('wgPanelBanner');
+  const wgForm = document.getElementById('wgForm');
+  const wgSubmit = document.getElementById('wgSubmit');
+  const wgRegionSelect = document.getElementById('wgRegionSelect');
+  const wgNameInput = document.getElementById('wgNameInput');
+  const wgEnvInput = document.getElementById('wgEnvInput');
+  const wgBody = document.getElementById('wgBody');
+  const wgCountEl = document.getElementById('wgCount');
+  let wgCardOpen = false;
+  let wgInstances = [];
+  let wgExpandedId = null;
+  let wgExpandedRowEl = null;
+
+  function renderWgCards() {
+    wgCardsEl.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'service-card' + (wgCardOpen ? ' active' : '');
+    btn.innerHTML = '<div class="service-card-name">WireGuard</div>';
+    btn.addEventListener('click', toggleWgCard);
+    wgCardsEl.appendChild(btn);
+  }
+
+  function toggleWgCard() {
+    wgCardOpen = !wgCardOpen;
+    if (wgCardOpen) {
+      wgNameInput.value = '';
+      wgEnvInput.value = '';
+      hideBanner(wgPanelBanner);
+      wgPanel.classList.add('is-open');
+    } else {
+      wgPanel.classList.remove('is-open');
+    }
+    renderWgCards();
+  }
+
+  wgForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const regionName = wgRegionSelect.value;
+    if (!regionName) return;
+
+    wgSubmit.disabled = true;
+    wgSubmit.textContent = 'Creating…';
+    hideBanner(wgPanelBanner);
+
+    const result = await BackendApi.createService('wireguard', session.userId, regionName, wgNameInput.value.trim(), wgEnvInput.value);
+
+    wgSubmit.disabled = false;
+    wgSubmit.textContent = 'Create';
+
+    if (!result.ok) {
+      const reason = (result.data && result.data.reason) || 'Failed to create.';
+      showBanner(wgPanelBanner, reason === 'insufficient_balance' ? 'Insufficient balance.' : reason, true);
+      return;
+    }
+
+    wgCardOpen = false;
+    wgPanel.classList.remove('is-open');
+    renderWgCards();
+    loadAll();
+  });
+
+  function wgPanelOpts() {
+    return {
+      session: session,
+      isRunService: false,
+      displayName: serviceDisplayName,
+      getAllServices: function () { return services; },
+      refresh: loadAll,
+      onDeleted: function () {
+        wgExpandedId = null;
+        wgExpandedRowEl = null;
+        loadAll();
+      },
+    };
+  }
+
+  async function toggleWgExpand(instance, tr) {
+    if (wgExpandedId === instance.id) {
+      const closing = wgExpandedRowEl;
+      wgExpandedId = null;
+      wgExpandedRowEl = null;
+      if (closing) await ServicePanel.close(closing);
+      return;
+    }
+    if (wgExpandedRowEl) await ServicePanel.close(wgExpandedRowEl);
+    wgExpandedId = instance.id;
+    wgExpandedRowEl = ServicePanel.open(tr, instance, wgPanelOpts());
+  }
+
+  function renderWgRow(instance) {
+    const tr = document.createElement('tr');
+    tr.className = 'row-link';
+    tr.dataset.id = instance.id;
+    const isActive = instance.status === 'active';
+    const statusClass = isActive ? 'is-active' : 'is-stopped';
+
+    tr.innerHTML =
+      '<td>' + escapeHtml(instance.custom_name || serviceDisplayName(instance.service_name)) + '</td>' +
+      '<td class="cell-mono">' + escapeHtml(serviceDisplayName(instance.service_name)) + '</td>' +
+      '<td class="cell-mono">' + escapeHtml(instance.region || '—') + '</td>' +
+      '<td class="cell-mono">' + escapeHtml((instance.vm && instance.vm.hostname) || '—') + '</td>' +
+      '<td class="cell-mono">' + escapeHtml(instance.port != null ? String(instance.port) : '—') + '</td>' +
+      '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(instance.status) + '</span></td>' +
+      '<td class="cell-actions"></td>';
+
+    const actionsCell = tr.querySelector('.cell-actions');
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'btn btn-ghost btn-sm';
+    toggleBtn.textContent = isActive ? 'Turn Off' : 'Turn On';
+    toggleBtn.addEventListener('click', async function (e) {
+      e.stopPropagation();
+      toggleBtn.disabled = true;
+      const action = isActive ? BackendApi.stopService : BackendApi.launchService;
+      const result = await action(instance.service_name, session.userId, instance.id);
+      if (!result.ok) showBanner(banner, 'Action failed.', true);
+      loadAll();
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger btn-sm';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', async function (e) {
+      e.stopPropagation();
+      if (!window.confirm('Delete ' + (instance.custom_name || serviceDisplayName(instance.service_name)) + '? This cannot be undone.')) return;
+      deleteBtn.disabled = true;
+      const result = await BackendApi.deleteService(instance.service_name, session.userId, instance.id);
+      if (!result.ok) {
+        showBanner(banner, 'Failed to delete.', true);
+        deleteBtn.disabled = false;
+        return;
+      }
+      loadAll();
+    });
+
+    actionsCell.appendChild(toggleBtn);
+    actionsCell.appendChild(deleteBtn);
+
+    tr.addEventListener('click', function () { toggleWgExpand(instance, tr); });
+
+    return tr;
+  }
+
+  function renderWgTable() {
+    wgCountEl.textContent = wgInstances.length + (wgInstances.length === 1 ? ' instance' : ' instances');
+
+    if (wgInstances.length === 0) {
+      wgBody.innerHTML = '<tr class="empty-row"><td colspan="7">No WireGuard instances yet. Pick the card above to get started.</td></tr>';
+      wgExpandedId = null;
+      wgExpandedRowEl = null;
+      return;
+    }
+
+    wgBody.innerHTML = '';
+    let stillExpanded = null;
+    wgInstances.forEach(function (instance) {
+      const tr = renderWgRow(instance);
+      wgBody.appendChild(tr);
+      if (instance.id === wgExpandedId) stillExpanded = { instance: instance, tr: tr };
+    });
+
+    wgExpandedRowEl = null;
+    if (stillExpanded) {
+      wgExpandedRowEl = ServicePanel.attach(stillExpanded.tr, stillExpanded.instance, wgPanelOpts());
+    } else {
+      wgExpandedId = null;
+    }
   }
 
   (async function init() {

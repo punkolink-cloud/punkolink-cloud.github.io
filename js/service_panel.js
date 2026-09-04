@@ -107,7 +107,7 @@ const ServicePanel = (function () {
                 '</div>' +
                 '<div class="section-card">' +
                   '<h3>Networking</h3>' +
-                  '<p class="section-desc">By default the container is reachable only through this node’s address, on an automatically assigned port. Point it at an address you rent under <a href="l3.html">L3</a> in this service’s region to publish it there instead — then you set the port.</p>' +
+                  '<p class="section-desc">By default the container is reachable only through this node’s address, on an automatically assigned port. Point it at an address you rent under <a href="network.html">Network</a> in this service’s region to publish it there instead — then you set the port.</p>' +
                   '<form data-el="networkForm">' +
                     '<div class="form-group" data-el="customIpGroup">' +
                       '<label class="form-label">Address</label>' +
@@ -219,7 +219,7 @@ const ServicePanel = (function () {
         el.customIpHint.classList.remove('hidden');
         el.customIpHint.innerHTML =
           'No rented addresses in ' + escapeHtml(service.region || 'this region') +
-          '. Rent one under <a href="l3.html">L3</a> and it shows up here.';
+          '. Rent one under <a href="network.html">Network</a> and it shows up here.';
         el.customPortInput.disabled = true;
         return;
       }

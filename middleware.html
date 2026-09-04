@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Punkolink — Dashboard</title>
+  <title>Punkolink — Middleware</title>
 
   <link rel="stylesheet" href="css/style.css">
 
@@ -39,7 +39,7 @@
   <div class="app-shell">
     <aside class="sidebar" id="appSidebar">
       <nav class="sidebar-nav">
-        <a class="sidebar-link active" href="dashboard.html">
+        <a class="sidebar-link" href="dashboard.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
           </svg>
@@ -58,7 +58,7 @@
           </svg>
           <span class="sidebar-link-label">Network</span>
         </a>
-        <a class="sidebar-link" href="middleware.html">
+        <a class="sidebar-link active" href="middleware.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M8 11l8-4M8 13l8 4"/>
           </svg>
@@ -107,36 +107,76 @@
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main>
-      <div class="shell">
+      <div class="shell shell-full">
         <div class="page-head">
           <div>
-            <div class="page-tag">Account</div>
-            <h1 class="page-title">Dashboard</h1>
+            <div class="page-tag">Managed Services</div>
+            <h1 class="page-title">Middleware</h1>
           </div>
         </div>
 
         <div class="banner" id="dashboardBanner"></div>
 
-        <div class="stat-row">
-          <div class="stat-tile">
-            <div class="stat-label">Active Services</div>
-            <div class="stat-value" id="statActiveServices">—</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-label">Total Services</div>
-            <div class="stat-value" id="statTotalServices">—</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-label">Addresses Held</div>
-            <div class="stat-value" id="statAddresses">—</div>
+        <div class="service-cards" id="serviceCards"></div>
+
+        <div class="create-panel" id="createPanel">
+          <div class="create-panel-inner">
+            <div class="create-panel-body">
+              <h2 id="createPanelTitle"></h2>
+              <p>Billed once a minute starting at the next tick.</p>
+
+              <div class="banner" id="addModalBanner"></div>
+
+              <form id="addServiceForm">
+                <div class="form-group hidden" id="parentGroup">
+                  <label class="form-label" for="parentSelect">Attach To</label>
+                  <select class="form-select" id="parentSelect"></select>
+                  <p class="form-hint hidden" id="parentHint"></p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="regionSelect">Region</label>
+                  <select class="form-select" id="regionSelect" required></select>
+                  <p class="form-hint">The virtual machine within the region is picked automatically.</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="customNameInput">Name <span class="optional">(optional)</span></label>
+                  <input class="form-input" type="text" id="customNameInput" placeholder="e.g. main-cache">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="envTextInput">Environment Variables <span class="optional">(optional)</span></label>
+                  <textarea class="form-textarea" id="envTextInput" rows="5" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>
+                  <p class="form-hint">One <code>KEY=value</code> pair per line. <code>PORT</code> is assigned automatically and can't be set here.</p>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="addServiceSubmit">Create</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
 
         <div class="toolbar">
-          <div class="toolbar-info">By type</div>
+          <div class="toolbar-info" id="serviceCount"></div>
         </div>
 
-        <div class="stat-row" id="byTypeRow"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Service</th>
+                <th>Region</th>
+                <th>Hostname</th>
+                <th>Port</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="servicesBody">
+              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   </div>
@@ -149,12 +189,15 @@
   <script src="js/session.js"></script>
   <script>
     // Google sign-in returns here (POST_LOGIN_REDIRECT) with the JWT in
-    // the URL fragment (#token=…). Adopt + scrub it BEFORE dashboard.js
-    // runs its Session.requireAuth() check — otherwise the just-signed-in
-    // user is bounced to login before the token is ever read.
+    // the URL fragment (#token=…). Adopt + scrub it BEFORE
+    // managed_services.js runs its Session.requireAuth() check —
+    // otherwise the just-signed-in user is bounced to login before the
+    // token is ever read.
     Session.adoptTokenFromHash();
+    window.MANAGED_SERVICES_CATEGORY = 'middleware';
   </script>
-  <script src="js/dashboard.js"></script>
+  <script src="js/service_panel.js"></script>
+  <script src="js/managed_services.js"></script>
   <script src="js/sidebar.js"></script>
 </body>
 </html>
