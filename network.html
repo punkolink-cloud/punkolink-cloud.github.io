@@ -118,6 +118,56 @@
         <div class="banner" id="l3Banner"></div>
 
         <div class="toolbar">
+          <div class="toolbar-info">Rent an address</div>
+        </div>
+
+        <div class="service-cards" id="rentCards"></div>
+
+        <div class="create-panel" id="rentPanel">
+          <div class="create-panel-inner">
+            <div class="create-panel-body">
+              <h2 id="rentPanelTitle"></h2>
+              <p>Billed once a minute starting at the next tick.</p>
+
+              <div class="banner" id="rentPanelBanner"></div>
+
+              <form id="rentForm">
+                <div class="form-group">
+                  <label class="form-label" for="regionSelect">Region</label>
+                  <select class="form-select" id="regionSelect" required></select>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="rentSubmit">Rent</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-info" id="ipCount"></div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Address</th>
+                <th>Version</th>
+                <th>Region</th>
+                <th>Routes To</th>
+                <th>Proto / Port</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="addressesBody">
+              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="toolbar" style="margin-top: var(--space-8);">
           <div class="toolbar-info">VPN</div>
         </div>
 
@@ -172,56 +222,6 @@
               </tr>
             </thead>
             <tbody id="wgBody">
-              <tr class="empty-row"><td colspan="7">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="toolbar" style="margin-top: var(--space-8);">
-          <div class="toolbar-info">Rent an address</div>
-        </div>
-
-        <div class="service-cards" id="rentCards"></div>
-
-        <div class="create-panel" id="rentPanel">
-          <div class="create-panel-inner">
-            <div class="create-panel-body">
-              <h2 id="rentPanelTitle"></h2>
-              <p>Billed once a minute starting at the next tick.</p>
-
-              <div class="banner" id="rentPanelBanner"></div>
-
-              <form id="rentForm">
-                <div class="form-group">
-                  <label class="form-label" for="regionSelect">Region</label>
-                  <select class="form-select" id="regionSelect" required></select>
-                </div>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" id="rentSubmit">Rent</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div class="toolbar">
-          <div class="toolbar-info" id="ipCount"></div>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Address</th>
-                <th>Version</th>
-                <th>Region</th>
-                <th>Routes To</th>
-                <th>Proto / Port</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="addressesBody">
               <tr class="empty-row"><td colspan="7">Loading…</td></tr>
             </tbody>
           </table>

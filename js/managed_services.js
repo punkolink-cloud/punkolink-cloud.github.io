@@ -17,7 +17,6 @@
     'apache-age': 'Apache AGE',
     paradedb: 'ParadeDB',
     valkey: 'Valkey',
-    nats: 'NATS',
     seaweedfs: 'SeaweedFS',
   };
 

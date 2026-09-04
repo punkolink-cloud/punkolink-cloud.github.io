@@ -8,7 +8,7 @@
   const FAMILY_LABELS = { ipv4: 'IPv4', ipv6: 'IPv6' };
   const SERVICE_DISPLAY_NAMES = {
     postgres: 'PostgreSQL', pgvector: 'pgvector', 'apache-age': 'Apache AGE', paradedb: 'ParadeDB',
-    valkey: 'Valkey', nats: 'NATS', seaweedfs: 'SeaweedFS',
+    valkey: 'Valkey', seaweedfs: 'SeaweedFS',
     'run-micro': 'Micro', 'run-medium': 'Medium', 'run-linux': 'Linux',
     wireguard: 'WireGuard', l7: 'L7', nginx: 'Nginx',
   };
