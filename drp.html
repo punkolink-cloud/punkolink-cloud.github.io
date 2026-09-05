@@ -225,7 +225,16 @@
                   <input class="form-input" type="text" id="linuxNameInput" placeholder="e.g. dev-box">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Ports <span class="optional">(optional — leave blank for one automatic port)</span></label>
+                  <label class="form-label" for="linuxIpSelect">Address</label>
+                  <select class="form-select" id="linuxIpSelect"></select>
+                  <p class="form-hint">On the node's own address, ports are always assigned automatically. Pick a rented address to choose specific port numbers instead.</p>
+                </div>
+                <div class="form-group" id="linuxExtraPortsGroup">
+                  <label class="form-label" for="linuxExtraPortsInput">Extra Ports <span class="optional">(optional, beyond SSH — automatic, up to 5)</span></label>
+                  <input class="form-input" type="number" id="linuxExtraPortsInput" min="0" max="5" placeholder="0">
+                </div>
+                <div class="form-group hidden" id="linuxPortsGroup">
+                  <label class="form-label">Ports</label>
                   <div class="port-grid">
                     <input class="form-input" type="number" id="linuxPortInput" min="1" max="65535" placeholder="Published port">
                     <input class="form-input" type="number" id="linuxPortEndInput" min="1" max="65535" placeholder="…through (optional)">
@@ -234,12 +243,13 @@
                   </div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="linuxIpSelect">Address</label>
-                  <select class="form-select" id="linuxIpSelect"></select>
+                  <label class="form-label" for="linuxSshPortInput">SSH Port <span class="optional">(automatic unless a rented address is picked above)</span></label>
+                  <input class="form-input" type="number" id="linuxSshPortInput" min="1" max="65535" placeholder="Automatic" disabled>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="linuxSshPortInput">SSH Port <span class="optional">(optional — automatic if left blank)</span></label>
-                  <input class="form-input" type="number" id="linuxSshPortInput" min="1" max="65535" placeholder="Automatic">
+                  <label class="form-label" for="linuxSshPasswordInput">SSH Password <span class="optional">(optional — generated if left blank)</span></label>
+                  <input class="form-input" type="text" id="linuxSshPasswordInput" placeholder="Generate one for me" autocomplete="off">
+                  <p class="form-hint">Shown once, right after creation — we don't store it, so write it down. Losing it means deleting and recreating the instance.</p>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="linuxOnExitSelect">On Exit</label>

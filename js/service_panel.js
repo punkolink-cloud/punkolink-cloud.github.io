@@ -52,9 +52,9 @@ const ServicePanel = (function () {
                   '<h3>SSH</h3>' +
                   '<div class="kv-list">' +
                     '<div class="kv-row"><span class="kv-key">Port</span><span class="kv-val" data-el="kvSshPort"></span></div>' +
-                    '<div class="kv-row"><span class="kv-key">Password</span><span class="kv-val" data-el="kvSshPassword"></span></div>' +
+                    '<div class="kv-row hidden" data-el="kvExtraPortsRow"><span class="kv-key">Extra Ports</span><span class="kv-val" data-el="kvExtraPorts"></span></div>' +
                   '</div>' +
-                  '<button class="btn btn-ghost btn-sm" data-el="sshRevealBtn" type="button" style="margin-top: var(--space-3);">Show password</button>' +
+                  '<p class="form-hint" style="margin-top: var(--space-3);">The password was shown once, right after creation — it isn’t stored, so it can’t be shown again here. If it’s lost, delete this instance and create a new one.</p>' +
                 '</div>' +
                 '<div class="detail-card">' +
                   '<h3>Actions</h3>' +
@@ -206,14 +206,11 @@ const ServicePanel = (function () {
     el.sshSection.classList.toggle('hidden', !isLinuxService);
     if (isLinuxService) {
       el.kvSshPort.textContent = service.ssh_port != null ? service.ssh_port : '—';
-      const masked = '••••••••••••';
-      el.kvSshPassword.textContent = masked;
-      let revealed = false;
-      el.sshRevealBtn.addEventListener('click', function () {
-        revealed = !revealed;
-        el.kvSshPassword.textContent = revealed ? (service.ssh_password || '—') : masked;
-        el.sshRevealBtn.textContent = revealed ? 'Hide password' : 'Show password';
-      });
+      const extraPorts = service.extra_ports || [];
+      el.kvExtraPortsRow.classList.toggle('hidden', extraPorts.length === 0);
+      if (extraPorts.length > 0) {
+        el.kvExtraPorts.textContent = extraPorts.join(', ');
+      }
     }
 
     el.toggleBtn.textContent = isActive ? (isRunService || isLinuxService ? 'Stop' : 'Turn Off') : (isRunService ? 'Run' : 'Turn On');

@@ -111,6 +111,8 @@
       let reason = (result.data && (result.data.message || result.data.reason)) || 'Action failed.';
       if (reason === 'no_payload_uploaded') {
         reason = 'Attach an Executable before running it.';
+      } else if (reason === 'missing_ssh_config') {
+        reason = 'This box’s container was removed and its SSH password was never stored — delete this instance and create a new one.';
       }
       showBanner(drpBanner, reason, true);
     }
@@ -304,12 +306,16 @@
   const linuxForm = document.getElementById('linuxForm');
   const linuxSubmit = document.getElementById('linuxSubmit');
   const linuxNameInput = document.getElementById('linuxNameInput');
+  const linuxExtraPortsGroup = document.getElementById('linuxExtraPortsGroup');
+  const linuxExtraPortsInput = document.getElementById('linuxExtraPortsInput');
+  const linuxPortsGroup = document.getElementById('linuxPortsGroup');
   const linuxPortInput = document.getElementById('linuxPortInput');
   const linuxPortEndInput = document.getElementById('linuxPortEndInput');
   const linuxContainerPortInput = document.getElementById('linuxContainerPortInput');
   const linuxContainerPortEndInput = document.getElementById('linuxContainerPortEndInput');
   const linuxIpSelect = document.getElementById('linuxIpSelect');
   const linuxSshPortInput = document.getElementById('linuxSshPortInput');
+  const linuxSshPasswordInput = document.getElementById('linuxSshPasswordInput');
   const linuxOnExitSelect = document.getElementById('linuxOnExitSelect');
   const linuxRestartDelayGroup = document.getElementById('linuxRestartDelayGroup');
   const linuxRestartDelayInput = document.getElementById('linuxRestartDelayInput');
@@ -335,19 +341,41 @@
   }
   linuxOnExitSelect.addEventListener('change', syncLinuxRestartDelayVisibility);
 
+  // Specific port numbers (the main range, and the SSH port) only make
+  // sense once you're the only tenant on an address — on the node's own
+  // shared address everything is auto-assigned instead, and the only
+  // choice is how many extra (still automatic) ports to open.
+  function syncLinuxAddressFields() {
+    const hasAddress = !!linuxIpSelect.value;
+    linuxPortsGroup.classList.toggle('hidden', !hasAddress);
+    linuxExtraPortsGroup.classList.toggle('hidden', hasAddress);
+    linuxSshPortInput.disabled = !hasAddress;
+    if (!hasAddress) {
+      linuxPortInput.value = '';
+      linuxPortEndInput.value = '';
+      linuxContainerPortInput.value = '';
+      linuxContainerPortEndInput.value = '';
+      linuxSshPortInput.value = '';
+    }
+  }
+  linuxIpSelect.addEventListener('change', syncLinuxAddressFields);
+
   function openLinuxPanel() {
     linuxPanelOpen = true;
     renderLinuxCard();
     renderIpOptions(linuxIpSelect, '', usedByMap(null));
     linuxNameInput.value = '';
+    linuxExtraPortsInput.value = '';
     linuxPortInput.value = '';
     linuxPortEndInput.value = '';
     linuxContainerPortInput.value = '';
     linuxContainerPortEndInput.value = '';
     linuxSshPortInput.value = '';
+    linuxSshPasswordInput.value = '';
     linuxOnExitSelect.value = 'restart';
     linuxRestartDelayInput.value = '15';
     syncLinuxRestartDelayVisibility();
+    syncLinuxAddressFields();
     hideBanner(linuxPanelBanner);
     linuxPanel.classList.add('is-open');
   }
@@ -380,6 +408,8 @@
       container_port_end: intOrNull(linuxContainerPortEndInput),
       custom_ip: linuxIpSelect.value || null,
       ssh_port: intOrNull(linuxSshPortInput),
+      ssh_password: linuxSshPasswordInput.value || null,
+      extra_port_count: intOrNull(linuxExtraPortsInput),
       on_exit: linuxOnExitSelect.value,
       restart_delay_seconds: parseInt(linuxRestartDelayInput.value, 10) || 15,
     });
@@ -395,10 +425,11 @@
 
     closeLinuxPanel();
     const data = result.data || {};
+    const extraPortsNote = (data.extra_ports && data.extra_ports.length) ? (' Extra ports: ' + data.extra_ports.join(', ') + '.') : '';
     showBanner(
       drpBanner,
       'Isolated Linux created — SSH port ' + data.ssh_port + ', password ' + data.ssh_password +
-      '. Copy this now; you can also see it later from the instance’s own row. ' + (data.boot_notice || ''),
+      '. This is the only time it’s shown — we don’t store it, so copy it now.' + extraPortsNote + ' ' + (data.boot_notice || ''),
       false
     );
     loadAll();
