@@ -206,7 +206,7 @@
     let failures = 0;
     for (const route of staged) {
       const result = route.addressId == null
-        ? await RouteApi.addDefault(session.userId, instanceId, route.protocol, route.containerPort)
+        ? await RouteApi.addDefault(session.userId, instanceId, { protocol: route.protocol, container_port: route.containerPort })
         : await RouteApi.add(session.userId, route.addressId, {
             instance_id: instanceId,
             protocol: route.protocol,

@@ -120,7 +120,10 @@
   const tbody = document.getElementById('addressesBody');
   const ipCountEl = document.getElementById('ipCount');
 
-  let expandedId = null;
+  // undefined = nothing expanded. null is itself a legitimate address_id
+  // now (the default row's), so it can't double as "nothing" too --
+  // every reset below uses undefined, never null.
+  let expandedId;
   let expandedRowEl = null;
 
   function openRow(afterRow, trContent) {
@@ -168,6 +171,12 @@
       return !s.custom_ip || (route && s.id === route.instance_id);
     });
 
+    // The node's own shared default address always auto-assigns its
+    // external port (see POST /routes/:user_id/default) -- there's no
+    // specific number to pick here the way a rented address has, so this
+    // form never shows Port fields for it, new route or existing one.
+    const isDefaultAddress = !!addressRow.is_default;
+
     wrapper.innerHTML =
       '<h3>' + (route ? 'Route' : 'Add Another Route') + '</h3>' +
       '<div class="banner" data-el="banner"></div>' +
@@ -183,13 +192,15 @@
             '<option value="udp">UDP</option>' +
           '</select>' +
         '</div>' +
-        '<div class="form-group">' +
-          '<label class="form-label">Port <span class="optional">(or a range)</span></label>' +
-          '<div class="port-grid" style="grid-template-columns: 1fr 1fr;">' +
-            '<input class="form-input" type="number" min="1" max="65535" data-el="portStart" placeholder="Port" required>' +
-            '<input class="form-input" type="number" min="1" max="65535" data-el="portEnd" placeholder="…through (optional)">' +
-          '</div>' +
-        '</div>' +
+        (isDefaultAddress
+          ? '<p class="form-hint">Port is always assigned automatically on the default address.</p>'
+          : '<div class="form-group">' +
+              '<label class="form-label">Port <span class="optional">(or a range)</span></label>' +
+              '<div class="port-grid" style="grid-template-columns: 1fr 1fr;">' +
+                '<input class="form-input" type="number" min="1" max="65535" data-el="portStart" placeholder="Port" required>' +
+                '<input class="form-input" type="number" min="1" max="65535" data-el="portEnd" placeholder="…through (optional)">' +
+              '</div>' +
+            '</div>') +
         '<div class="form-group">' +
           '<label class="form-label">Source IP Whitelist <span class="optional">(optional)</span></label>' +
           '<textarea class="form-textarea" rows="2" placeholder="One IP or CIDR per line" data-el="whitelist"></textarea>' +
@@ -199,11 +210,13 @@
           '<label class="form-label">Source IP Blacklist <span class="optional">(optional)</span></label>' +
           '<textarea class="form-textarea" rows="2" placeholder="One IP or CIDR per line" data-el="blacklist"></textarea>' +
         '</div>' +
-        '<div class="form-group">' +
-          '<label class="form-label" style="display: flex; align-items: center; gap: var(--space-2); text-transform: none; letter-spacing: normal;">' +
-            '<input type="checkbox" data-el="enabled"> Enabled' +
-          '</label>' +
-        '</div>' +
+        (isDefaultAddress && !route
+          ? ''
+          : '<div class="form-group">' +
+              '<label class="form-label" style="display: flex; align-items: center; gap: var(--space-2); text-transform: none; letter-spacing: normal;">' +
+                '<input type="checkbox" data-el="enabled"> Enabled' +
+              '</label>' +
+            '</div>') +
         '<div class="form-actions">' +
           '<button type="submit" class="btn btn-primary btn-sm">' + (route ? 'Save' : 'Add Route') + '</button>' +
           (route ? '<button type="button" class="btn btn-danger btn-sm" data-el="deleteBtn">Delete</button>' : '') +
@@ -220,38 +233,61 @@
     if (route) {
       el.instance.value = route.instance_id;
       el.protocol.value = route.protocol;
-      el.portStart.value = route.port_start;
-      el.portEnd.value = route.port_end !== route.port_start ? route.port_end : '';
+      if (el.portStart) el.portStart.value = route.port_start;
+      if (el.portEnd) el.portEnd.value = route.port_end !== route.port_start ? route.port_end : '';
       el.whitelist.value = route.whitelist.join('\n');
       el.blacklist.value = route.blacklist.join('\n');
-      el.enabled.checked = route.enabled;
-    } else {
+      if (el.enabled) el.enabled.checked = route.enabled;
+    } else if (el.enabled) {
       el.enabled.checked = true;
     }
 
     el.form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      const portStart = parseInt(el.portStart.value, 10);
-      if (!el.instance.value || !Number.isInteger(portStart)) return;
-      const portEndRaw = el.portEnd.value.trim();
+      if (!el.instance.value) return;
 
-      const body = {
-        instance_id: Number(el.instance.value),
-        protocol: el.protocol.value,
-        port_start: portStart,
-        port_end: portEndRaw ? parseInt(portEndRaw, 10) : null,
-        whitelist: linesToList(el.whitelist.value),
-        blacklist: linesToList(el.blacklist.value),
-        enabled: el.enabled.checked,
-      };
+      let portStart = null;
+      let portEnd = null;
+      if (!isDefaultAddress) {
+        portStart = parseInt(el.portStart.value, 10);
+        if (!Number.isInteger(portStart)) return;
+        const portEndRaw = el.portEnd.value.trim();
+        portEnd = portEndRaw ? parseInt(portEndRaw, 10) : null;
+      }
 
       const submitBtn = el.form.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       hideBanner(el.banner);
 
-      const result = route
-        ? await RouteApi.update(session.userId, route.id, body)
-        : await RouteApi.add(session.userId, addressRow.address_id, body);
+      let result;
+      if (isDefaultAddress) {
+        result = route
+          ? await RouteApi.update(session.userId, route.id, {
+              instance_id: Number(el.instance.value),
+              protocol: el.protocol.value,
+              whitelist: linesToList(el.whitelist.value),
+              blacklist: linesToList(el.blacklist.value),
+              enabled: el.enabled.checked,
+            })
+          : await RouteApi.addDefault(session.userId, Number(el.instance.value), {
+              protocol: el.protocol.value,
+              whitelist: linesToList(el.whitelist.value),
+              blacklist: linesToList(el.blacklist.value),
+            });
+      } else {
+        const body = {
+          instance_id: Number(el.instance.value),
+          protocol: el.protocol.value,
+          port_start: portStart,
+          port_end: portEnd,
+          whitelist: linesToList(el.whitelist.value),
+          blacklist: linesToList(el.blacklist.value),
+          enabled: el.enabled.checked,
+        };
+        result = route
+          ? await RouteApi.update(session.userId, route.id, body)
+          : await RouteApi.add(session.userId, addressRow.address_id, body);
+      }
 
       submitBtn.disabled = false;
 
@@ -312,7 +348,7 @@
   async function toggleExpand(addressRow, summaryTr) {
     if (expandedId === addressRow.address_id) {
       const closing = expandedRowEl;
-      expandedId = null;
+      expandedId = undefined;
       expandedRowEl = null;
       if (closing) await closeRow(closing);
       return;
@@ -347,38 +383,56 @@
       status = '<span class="status is-active"><span class="status-dot"></span>' + enabledCount + '/' + routes.length + ' enabled</span>';
     }
 
+    // The default row shows the node's own address (if configured) plus
+    // its domain name right underneath — every other row only ever has
+    // the one address, no hostname of its own.
+    const addressCell = addressRow.is_default
+      ? escapeHtml(addressRow.address || '—') +
+        (addressRow.hostname ? '<div class="cell-hint">' + escapeHtml(addressRow.hostname) + '</div>' : '')
+      : escapeHtml(addressRow.address);
+
     tr.innerHTML =
-      '<td class="cell-mono">' + escapeHtml(addressRow.address) + '</td>' +
+      '<td class="cell-mono">' + addressCell + '</td>' +
       '<td class="cell-mono">' + escapeHtml(FAMILY_LABELS[addressRow.family] || addressRow.family) + '</td>' +
       '<td>' + routesTo + '</td>' +
       '<td class="cell-mono">' + protoPort + '</td>' +
       '<td>' + status + '</td>' +
       '<td class="cell-actions"></td>';
 
-    const releaseBtn = document.createElement('button');
-    releaseBtn.className = 'btn btn-danger btn-sm';
-    releaseBtn.textContent = 'Release';
-    releaseBtn.addEventListener('click', async function (e) {
-      e.stopPropagation();
-      if (!window.confirm(
-        'Release ' + addressRow.address + '?\n\nThis cannot be undone — the address goes back to the free pool, ' +
-        'any route configured on it is torn down immediately, and someone else may rent it next.'
-      )) return;
+    // Not a rented address -- nothing to release, just a note that this
+    // row is the shared node default rather than something the user
+    // holds and can give back.
+    if (addressRow.is_default) {
+      const badge = document.createElement('span');
+      badge.className = 'cell-hint';
+      badge.textContent = 'Default';
+      tr.querySelector('.cell-actions').appendChild(badge);
+    } else {
+      const releaseBtn = document.createElement('button');
+      releaseBtn.className = 'btn btn-danger btn-sm';
+      releaseBtn.textContent = 'Release';
+      releaseBtn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        if (!window.confirm(
+          'Release ' + addressRow.address + '?\n\nThis cannot be undone — the address goes back to the free pool, ' +
+          'any route configured on it is torn down immediately, and someone else may rent it next.'
+        )) return;
 
-      releaseBtn.disabled = true;
-      const result = await L3Api.release(session.userId, addressRow.address_id);
-      if (!result.ok) {
-        showBanner(banner, 'Failed to release the address.', true);
-        releaseBtn.disabled = false;
-        return;
-      }
-      if (expandedId === addressRow.address_id) {
-        expandedId = null;
-        expandedRowEl = null;
-      }
-      loadAll();
-    });
-    tr.querySelector('.cell-actions').appendChild(releaseBtn);
+        releaseBtn.disabled = true;
+        const result = await L3Api.release(session.userId, addressRow.address_id);
+        if (!result.ok) {
+          showBanner(banner, 'Failed to release the address.', true);
+          releaseBtn.disabled = false;
+          return;
+        }
+        if (expandedId === addressRow.address_id) {
+          expandedId = undefined;
+          expandedRowEl = null;
+        }
+        loadAll();
+      });
+      tr.querySelector('.cell-actions').appendChild(releaseBtn);
+    }
 
     tr.addEventListener('click', function () { toggleExpand(addressRow, tr); });
 
@@ -399,16 +453,12 @@
       return;
     }
 
+    // The node's own default address is always the first entry (see
+    // route_controller::list) -- it isn't something the user rents, so
+    // it's excluded from this count.
     const addresses = (result.data && result.data.addresses) || [];
-    ipCountEl.textContent = addresses.length + (addresses.length === 1 ? ' address held' : ' addresses held');
-
-    if (addresses.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No addresses held yet. Rent one above.</td></tr>';
-      expandedId = null;
-      expandedRowEl = null;
-      renderRentCards();
-      return;
-    }
+    const rentedCount = addresses.filter(function (a) { return !a.is_default; }).length;
+    ipCountEl.textContent = rentedCount + (rentedCount === 1 ? ' address held' : ' addresses held');
 
     tbody.innerHTML = '';
     let stillExpanded = null;
@@ -422,7 +472,7 @@
     if (stillExpanded) {
       expandedRowEl = attachRow(stillExpanded.tr, buildDetailRow(stillExpanded.addressRow));
     } else {
-      expandedId = null;
+      expandedId = undefined;
     }
 
     renderRentCards();

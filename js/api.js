@@ -191,13 +191,14 @@ const RouteApi = {
     return apiRequest('/routes/' + userId + '/addresses/' + addressId, { method: 'POST', body: body });
   },
   // Adds another route on the node's own default address — always an
-  // automatically assigned external port, so there's no port field to
-  // pass here. containerPort (Run only) still lets the caller pin which
-  // port the container itself listens on, independent of that.
-  addDefault: function (userId, instanceId, protocol, containerPort) {
+  // automatically assigned external port, so there's no port field in
+  // `body` for it. `body` also takes protocol/whitelist/blacklist, and
+  // (Run only) container_port to pin what the container itself listens
+  // on, independent of that external port.
+  addDefault: function (userId, instanceId, body) {
     return apiRequest('/routes/' + userId + '/default', {
       method: 'POST',
-      body: { instance_id: instanceId, protocol: protocol, container_port: containerPort != null ? Number(containerPort) : null },
+      body: Object.assign({ instance_id: instanceId }, body),
     });
   },
   // Updates one specific existing route by its own id.

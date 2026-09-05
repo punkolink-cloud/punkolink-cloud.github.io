@@ -496,7 +496,7 @@ const ServicePanel = (function () {
 
       let result;
       if (el.addAddressSelect.value === '') {
-        result = await RouteApi.addDefault(opts.session.userId, service.id, el.addProtocol.value, containerPort);
+        result = await RouteApi.addDefault(opts.session.userId, service.id, { protocol: el.addProtocol.value, container_port: containerPort });
       } else {
         const port = parseInt(el.addPortStart.value, 10);
         if (!Number.isInteger(port)) {
