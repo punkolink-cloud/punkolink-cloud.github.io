@@ -66,6 +66,159 @@
     return usedBy;
   }
 
+  // ── staged network routes (create flow) ──
+  //
+  // The instance editor's own Network section (service_panel.js) talks
+  // straight to RouteApi against a real instance_id. At creation time
+  // there is no instance yet, so this builds the same idea -- pick an
+  // address (default or rented), a port, and (Run only) a container
+  // port -- purely locally, and only actually calls RouteApi once for
+  // each staged entry, right after the instance itself is created.
+  function buildStagedRoutesEditor(slotEl, isRunService) {
+    let staged = [];
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML =
+      '<label class="form-label">Additional Network Routes <span class="optional">(optional — more can be added later too)</span></label>' +
+      '<p class="form-hint">Reach this instance on more addresses/ports as soon as it’s created — same as the Network section in its own editor.</p>' +
+      '<div class="table-wrap"><table><thead><tr><th>Address</th><th>Proto</th><th>Port</th>' +
+        (isRunService ? '<th>Container</th>' : '') + '<th></th></tr></thead>' +
+        '<tbody data-el="stagedBody"></tbody></table></div>' +
+      '<div class="port-grid" style="grid-template-columns: 2fr 1fr 1fr 1fr; margin-top: var(--space-3);">' +
+        '<select class="form-select" data-el="addressSelect"></select>' +
+        '<select class="form-select" data-el="protocolSelect"><option value="tcp">TCP</option><option value="udp">UDP</option></select>' +
+        '<input class="form-input" type="number" min="1" max="65535" placeholder="Port" data-el="portStart">' +
+        '<input class="form-input hidden" type="number" min="1" max="65535" placeholder="…through (optional)" data-el="portEnd">' +
+      '</div>' +
+      (isRunService
+        ? '<input class="form-input" style="margin-top: var(--space-3);" type="number" min="1" max="65535" placeholder="Container port (optional)" data-el="containerPort">'
+        : '') +
+      '<span class="form-error" data-el="error"></span>' +
+      '<button type="button" class="btn btn-secondary btn-sm" style="margin-top: var(--space-3);" data-el="addBtn">Add Route</button>';
+    slotEl.appendChild(wrap);
+
+    const el = {};
+    wrap.querySelectorAll('[data-el]').forEach(function (node) { el[node.getAttribute('data-el')] = node; });
+
+    function syncPortFields() {
+      const hasAddress = el.addressSelect.value !== '';
+      el.portStart.classList.toggle('hidden', !hasAddress);
+      el.portEnd.classList.toggle('hidden', !(hasAddress && isRunService));
+      if (!hasAddress) { el.portStart.value = ''; el.portEnd.value = ''; }
+    }
+    el.addressSelect.addEventListener('change', syncPortFields);
+
+    function renderTable() {
+      const colCount = isRunService ? 5 : 4;
+      if (staged.length === 0) {
+        el.stagedBody.innerHTML = '<tr class="empty-row"><td colspan="' + colCount + '">None yet.</td></tr>';
+        return;
+      }
+      el.stagedBody.innerHTML = '';
+      staged.forEach(function (route, index) {
+        const tr = document.createElement('tr');
+        const portLabel = route.portStart == null
+          ? 'Automatic'
+          : (':' + route.portStart + (route.portEnd !== route.portStart ? '-' + route.portEnd : ''));
+        tr.innerHTML =
+          '<td class="cell-mono">' + escapeHtml(route.addressLabel) + '</td>' +
+          '<td class="cell-mono">' + route.protocol.toUpperCase() + '</td>' +
+          '<td class="cell-mono">' + escapeHtml(portLabel) + '</td>' +
+          (isRunService ? '<td class="cell-mono">' + (route.containerPort != null ? route.containerPort : '—') + '</td>' : '') +
+          '<td class="cell-actions"></td>';
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-danger btn-sm';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', function () {
+          staged.splice(index, 1);
+          renderTable();
+        });
+        tr.querySelector('.cell-actions').appendChild(removeBtn);
+        el.stagedBody.appendChild(tr);
+      });
+    }
+
+    el.addBtn.addEventListener('click', function () {
+      el.error.textContent = '';
+      el.error.classList.remove('visible');
+      const hasAddress = el.addressSelect.value !== '';
+      let portStart = null;
+      let portEnd = null;
+      if (hasAddress) {
+        portStart = parseInt(el.portStart.value, 10);
+        if (!Number.isInteger(portStart)) {
+          el.error.textContent = 'Pick a port for that address.';
+          el.error.classList.add('visible');
+          return;
+        }
+        const endRaw = el.portEnd.value.trim();
+        portEnd = endRaw !== '' ? parseInt(endRaw, 10) : portStart;
+      }
+      const containerPort = isRunService && el.containerPort && el.containerPort.value.trim() !== ''
+        ? parseInt(el.containerPort.value, 10)
+        : null;
+
+      staged.push({
+        addressId: hasAddress ? Number(el.addressSelect.value) : null,
+        addressLabel: hasAddress ? el.addressSelect.selectedOptions[0].textContent : 'Default',
+        protocol: el.protocolSelect.value,
+        portStart: portStart,
+        portEnd: portEnd,
+        containerPort: containerPort,
+      });
+
+      el.portStart.value = '';
+      el.portEnd.value = '';
+      if (el.containerPort) el.containerPort.value = '';
+      renderTable();
+    });
+
+    renderTable();
+
+    return {
+      setAddresses: function (list) {
+        let optionsHtml = '<option value="">Default (automatic port)</option>';
+        list.forEach(function (a) {
+          optionsHtml += '<option value="' + a.id + '">' + escapeHtml(a.address) + '</option>';
+        });
+        el.addressSelect.innerHTML = optionsHtml;
+        syncPortFields();
+      },
+      reset: function () {
+        staged = [];
+        el.error.textContent = '';
+        el.error.classList.remove('visible');
+        el.addressSelect.value = '';
+        syncPortFields();
+        renderTable();
+      },
+      getStaged: function () { return staged.slice(); },
+    };
+  }
+
+  // Creates every staged route against a just-created instance, best
+  // effort -- the instance itself already exists by this point, so one
+  // failed extra route shouldn't be reported as the creation having
+  // failed. Returns how many of them failed, for the caller's own
+  // success banner.
+  async function flushStagedRoutes(instanceId, staged) {
+    let failures = 0;
+    for (const route of staged) {
+      const result = route.addressId == null
+        ? await RouteApi.addDefault(session.userId, instanceId, route.protocol, route.containerPort)
+        : await RouteApi.add(session.userId, route.addressId, {
+            instance_id: instanceId,
+            protocol: route.protocol,
+            port_start: route.portStart,
+            port_end: route.portEnd,
+            container_port: route.containerPort,
+          });
+      if (!result.ok) failures += 1;
+    }
+    return failures;
+  }
+
   async function loadShared() {
     const [addrResult, execResult] = await Promise.all([
       L3Api.list(session.userId),
@@ -167,6 +320,7 @@
   const runStartCommandInput = document.getElementById('runStartCommandInput');
   const runBody = document.getElementById('runBody');
   const runCountEl = document.getElementById('runCount');
+  const runRoutesEditor = buildStagedRoutesEditor(document.getElementById('runRoutesEditorSlot'), true);
 
   let runPanelOpen = false;
 
@@ -209,6 +363,8 @@
     runRestartDelayInput.value = '15';
     runStartCommandInput.value = '';
     syncRunRestartDelayVisibility();
+    runRoutesEditor.setAddresses(addresses);
+    runRoutesEditor.reset();
     hideBanner(runPanelBanner);
     runPanel.classList.add('is-open');
   }
@@ -261,8 +417,16 @@
       return;
     }
 
+    const staged = runRoutesEditor.getStaged();
+    const failures = staged.length ? await flushStagedRoutes(result.data.id, staged) : 0;
+
     closeRunPanel();
-    showBanner(drpBanner, 'Run instance created. Press Run on it below to start it.', false);
+    showBanner(
+      drpBanner,
+      'Run instance created. Press Run on it below to start it.' +
+      (failures ? ' ' + failures + ' additional route(s) failed to apply — add them from the instance’s own editor.' : ''),
+      false
+    );
     loadAll();
   });
 
@@ -342,6 +506,10 @@
     const onExitSelect = document.getElementById(idPrefix + 'OnExitSelect');
     const restartDelayGroup = document.getElementById(idPrefix + 'RestartDelayGroup');
     const restartDelayInput = document.getElementById(idPrefix + 'RestartDelayInput');
+    // Container Port makes no sense here -- Isolated Linux's ports stay
+    // 1:1 by design (see route_controller::ensure_container_port_allowed_for_instance),
+    // so this editor never offers it.
+    const routesEditor = buildStagedRoutesEditor(document.getElementById(idPrefix + 'RoutesEditorSlot'), false);
 
     let panelOpen = false;
 
@@ -396,6 +564,8 @@
       restartDelayInput.value = '15';
       syncRestartDelayVisibility();
       syncAddressFields();
+      routesEditor.setAddresses(addresses);
+      routesEditor.reset();
       hideBanner(panelBanner);
       panel.classList.add('is-open');
     }
@@ -447,13 +617,17 @@
         return;
       }
 
+      const staged = routesEditor.getStaged();
+      const failures = staged.length ? await flushStagedRoutes(result.data.id, staged) : 0;
+
       close();
       const data = result.data || {};
       const extraPortsNote = (data.extra_ports && data.extra_ports.length) ? (' Extra ports: ' + data.extra_ports.join(', ') + '.') : '';
+      const failureNote = failures ? (' ' + failures + ' additional route(s) failed to apply — add them from the instance’s own editor.') : '';
       showBanner(
         drpBanner,
         cardLabel + ' created — SSH port ' + data.ssh_port + ', password ' + data.ssh_password +
-        '. This is the only time it’s shown — we don’t store it, so copy it now.' + extraPortsNote + ' ' + (data.boot_notice || ''),
+        '. This is the only time it’s shown — we don’t store it, so copy it now.' + extraPortsNote + ' ' + (data.boot_notice || '') + failureNote,
         false
       );
       loadAll();

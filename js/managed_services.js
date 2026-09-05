@@ -1,7 +1,8 @@
-// Shared behind database.html / in-memory.html / document.html — the
-// three sections Managed Services was split into. Each page sets
+// Shared behind database.html / in-memory.html — the sections Managed
+// Services was split into (Document/Middleware used the same module but
+// their pages were retired). Each page sets
 // window.MANAGED_SERVICES_CATEGORY before loading this script; the DOM
-// element ids are otherwise identical across all three, copied from the
+// element ids are otherwise identical across both, copied from the
 // original single-page Managed Services layout.
 (function () {
   const session = Session.requireAuth();
