@@ -180,10 +180,20 @@ const RouteApi = {
   list: function (userId) {
     return apiRequest('/routes/' + userId, { method: 'GET' });
   },
+  // One instance's own routes (its default one included) — what an
+  // instance's own editor shows, as opposed to list()'s per-address view.
+  listForInstance: function (userId, instanceId) {
+    return apiRequest('/routes/' + userId + '/instances/' + instanceId, { method: 'GET' });
+  },
   // Always adds another route on this address — an address can carry
   // several, each an independent port range.
   add: function (userId, addressId, body) {
     return apiRequest('/routes/' + userId + '/addresses/' + addressId, { method: 'POST', body: body });
+  },
+  // Adds another route on the node's own default address — always an
+  // automatically assigned port, so there's no port field to pass here.
+  addDefault: function (userId, instanceId, protocol) {
+    return apiRequest('/routes/' + userId + '/default', { method: 'POST', body: { instance_id: instanceId, protocol: protocol } });
   },
   // Updates one specific existing route by its own id.
   update: function (userId, routeId, body) {

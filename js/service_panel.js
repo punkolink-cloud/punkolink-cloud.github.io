@@ -120,22 +120,40 @@ const ServicePanel = (function () {
                   '</form>' +
                 '</div>' +
                 '<div class="section-card">' +
-                  '<h3>Networking</h3>' +
-                  '<p class="section-desc">By default the container is reachable only through this node’s address, on an automatically assigned port. Point it at an address you rent under <a href="network.html">Network</a> to publish it there instead — then you set the port.</p>' +
-                  '<form data-el="networkForm">' +
-                    '<div class="form-group" data-el="customIpGroup">' +
-                      '<label class="form-label">Address</label>' +
-                      '<select class="form-select" data-el="customIpSelect"></select>' +
-                    '</div>' +
-                    '<p class="form-hint hidden" data-el="customIpHint"></p>' +
+                  '<h3>Network</h3>' +
+                  '<p class="section-desc">Every address and port this instance is reachable on. The node’s own default address always gets an automatically assigned port; rent an address under <a href="network.html">Network</a> first to pick specific numbers on it instead. Adding a rented address never removes the default one.</p>' +
+                  '<div class="banner hidden" data-el="directBindingNotice">' +
+                    'This instance has an older direct-IP override, which blocks adding routes here. ' +
+                    '<button class="btn btn-secondary btn-sm" data-el="clearDirectBindingBtn" type="button" style="margin-left: var(--space-2);">Clear it</button>' +
+                  '</div>' +
+                  '<div class="table-wrap">' +
+                    '<table>' +
+                      '<thead><tr><th>Address</th><th>Proto</th><th>Port</th><th>Status</th><th></th></tr></thead>' +
+                      '<tbody data-el="routesBody"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>' +
+                    '</table>' +
+                  '</div>' +
+                  '<div class="banner" data-el="routesBanner"></div>' +
+                  '<form data-el="addRouteForm" style="margin-top: var(--space-4);">' +
                     '<div class="form-group">' +
-                      '<label class="form-label">Port</label>' +
-                      '<input class="form-input" type="number" data-el="customPortInput" min="1" max="65535" disabled>' +
-                      '<span class="form-error" data-el="networkError"></span>' +
-                      '<p class="form-hint">Editable once an address is chosen. Pick “Default” to go back to the node address and an automatic port.</p>' +
+                      '<label class="form-label">Add Address</label>' +
+                      '<select class="form-select" data-el="addAddressSelect"></select>' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                      '<label class="form-label">Protocol</label>' +
+                      '<select class="form-select" data-el="addProtocol">' +
+                        '<option value="tcp">TCP</option>' +
+                        '<option value="udp">UDP</option>' +
+                      '</select>' +
+                    '</div>' +
+                    '<div class="form-group hidden" data-el="addPortGroup">' +
+                      '<label class="form-label">Port <span class="optional">(or a range)</span></label>' +
+                      '<div class="port-grid" style="grid-template-columns: 1fr 1fr;">' +
+                        '<input class="form-input" type="number" min="1" max="65535" data-el="addPortStart" placeholder="Port">' +
+                        '<input class="form-input" type="number" min="1" max="65535" data-el="addPortEnd" placeholder="…through (optional)">' +
+                      '</div>' +
                     '</div>' +
                     '<div class="form-actions">' +
-                      '<button type="submit" class="btn btn-primary btn-sm">Save Networking</button>' +
+                      '<button type="submit" class="btn btn-primary btn-sm">Add</button>' +
                     '</div>' +
                   '</form>' +
                 '</div>' +
@@ -248,57 +266,119 @@ const ServicePanel = (function () {
         : '<div class="kv-row"><span class="kv-key">Status</span><span class="kv-val">No payload uploaded yet</span></div>';
     }
 
-    // ── networking: pick a rented address, or Default ──
-    function renderNetworking(heldAddresses) {
-      const usedBy = {};
-      (opts.getAllServices() || []).forEach(function (s) {
-        if (String(s.id) !== String(service.id) && s.custom_ip) {
-          usedBy[s.custom_ip] = s.custom_name || displayName(s.service_name);
-        }
-      });
+    // ── network: this instance's own routes (default address + any
+    // rented ones), each an independent port/range -- see js/network.js
+    // for the same underlying model at the account-wide level. ──
+    const ROUTE_REASON_TEXT = {
+      instance_has_direct_binding: 'This instance still has the older direct-IP override set — clear it above first.',
+      address_not_held: 'That address is not one you rent anymore.',
+      port_in_use: 'That port range overlaps another route already on this address.',
+      invalid_port_range: 'Pick a port (or range) between 1 and 65535.',
+      unknown_route: 'That route no longer exists — reload.',
+    };
+    function routeErrorText(result) {
+      const reason = result.data && result.data.reason;
+      return ROUTE_REASON_TEXT[reason] || (result.data && result.data.message) || reason || 'Failed to save.';
+    }
 
-      el.customPortInput.value = service.port != null ? service.port : '';
+    let routes = [];
+    let heldAddressesForRoutes = [];
 
-      if (heldAddresses.length === 0 && !service.custom_ip) {
-        el.customIpGroup.classList.add('hidden');
-        el.customIpHint.classList.remove('hidden');
-        el.customIpHint.innerHTML =
-          'No rented addresses yet. Rent one under <a href="network.html">Network</a> and it shows up here.';
-        el.customPortInput.disabled = true;
+    function renderRoutesTable() {
+      if (routes.length === 0) {
+        el.routesBody.innerHTML = '<tr class="empty-row"><td colspan="5">Not reachable on any address yet.</td></tr>';
         return;
       }
+      el.routesBody.innerHTML = '';
+      routes.forEach(function (route) {
+        const rowEl = document.createElement('tr');
+        const addressLabel = route.address ? escapeHtml(route.address) : 'Default';
+        const portLabel = ':' + route.port_start + (route.port_end !== route.port_start ? '-' + route.port_end : '');
+        rowEl.innerHTML =
+          '<td class="cell-mono">' + addressLabel + '</td>' +
+          '<td class="cell-mono">' + escapeHtml(route.protocol.toUpperCase()) + '</td>' +
+          '<td class="cell-mono">' + escapeHtml(portLabel) + '</td>' +
+          '<td>' + (route.enabled
+            ? '<span class="status is-active"><span class="status-dot"></span>enabled</span>'
+            : '<span class="status is-stopped"><span class="status-dot"></span>disabled</span>') + '</td>' +
+          '<td class="cell-actions"></td>';
 
-      el.customIpGroup.classList.remove('hidden');
-      el.customIpHint.classList.add('hidden');
+        const actionsCell = rowEl.querySelector('.cell-actions');
 
-      const seen = {};
-      let optionsHtml = '<option value="">Default — node address, automatic port</option>';
-      heldAddresses.forEach(function (a) {
-        seen[a.address] = true;
-        const used = usedBy[a.address];
-        optionsHtml +=
-          '<option value="' + escapeHtml(a.address) + '"' + (used ? ' disabled' : '') + '>' +
-          escapeHtml(a.address) + (used ? ' — in use by ' + escapeHtml(used) : '') +
-          '</option>';
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-ghost btn-sm';
+        toggleBtn.textContent = route.enabled ? 'Disable' : 'Enable';
+        toggleBtn.addEventListener('click', async function () {
+          toggleBtn.disabled = true;
+          const result = await RouteApi.update(opts.session.userId, route.id, { enabled: !route.enabled });
+          if (!result.ok) {
+            showBanner(el.routesBanner, routeErrorText(result), true);
+            toggleBtn.disabled = false;
+            return;
+          }
+          loadRoutes();
+        });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-danger btn-sm';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', async function () {
+          if (!window.confirm('Remove this route? This cannot be undone.')) return;
+          removeBtn.disabled = true;
+          const result = await RouteApi.remove(opts.session.userId, route.id);
+          if (!result.ok) {
+            showBanner(el.routesBanner, routeErrorText(result), true);
+            removeBtn.disabled = false;
+            return;
+          }
+          loadRoutes();
+        });
+
+        actionsCell.appendChild(toggleBtn);
+        actionsCell.appendChild(removeBtn);
+        el.routesBody.appendChild(rowEl);
       });
-      if (service.custom_ip && !seen[service.custom_ip]) {
-        optionsHtml += '<option value="' + escapeHtml(service.custom_ip) + '">' + escapeHtml(service.custom_ip) + ' — not currently rented</option>';
+    }
+
+    function renderAddAddressOptions() {
+      let optionsHtml = '<option value="">Default (automatic port)</option>';
+      heldAddressesForRoutes.forEach(function (a) {
+        optionsHtml += '<option value="' + a.address_id + '">' + escapeHtml(a.address) + '</option>';
+      });
+      el.addAddressSelect.innerHTML = optionsHtml;
+      syncAddPortVisibility();
+    }
+
+    function syncAddPortVisibility() {
+      el.addPortGroup.classList.toggle('hidden', el.addAddressSelect.value === '');
+    }
+    el.addAddressSelect.addEventListener('change', syncAddPortVisibility);
+
+    async function loadRoutes() {
+      hideBanner(el.routesBanner);
+      const [routesResult, addressesResult] = await Promise.all([
+        RouteApi.listForInstance(opts.session.userId, service.id),
+        L3Api.list(opts.session.userId),
+      ]);
+      routes = (routesResult.ok && routesResult.data && routesResult.data.routes) || [];
+      heldAddressesForRoutes = (addressesResult.ok && addressesResult.data && addressesResult.data.addresses) || [];
+      renderRoutesTable();
+      renderAddAddressOptions();
+    }
+
+    el.directBindingNotice.classList.toggle('hidden', !service.custom_ip);
+    el.clearDirectBindingBtn.addEventListener('click', async function () {
+      el.clearDirectBindingBtn.disabled = true;
+      const result = await BackendApi.setNetwork(service.service_name, opts.session.userId, service.id, null, null);
+      if (!result.ok) {
+        showBanner(el.routesBanner, 'Failed to clear the direct IP.', true);
+        el.clearDirectBindingBtn.disabled = false;
+        return;
       }
-      el.customIpSelect.innerHTML = optionsHtml;
-      el.customIpSelect.value = service.custom_ip || '';
-      syncPortField();
-    }
-
-    function syncPortField() {
-      el.customPortInput.disabled = el.customIpSelect.value === '';
-    }
-
-    L3Api.list(opts.session.userId).then(function (result) {
-      const addresses = (result.ok && result.data && result.data.addresses) || [];
-      renderNetworking(addresses);
+      opts.refresh();
     });
 
-    el.customIpSelect.addEventListener('change', syncPortField);
+    loadRoutes();
 
     // ── actions ──
     el.toggleBtn.addEventListener('click', async function () {
@@ -380,35 +460,41 @@ const ServicePanel = (function () {
       showBanner(el.banner, 'Settings saved.', false);
     });
 
-    el.networkForm.addEventListener('submit', async function (e) {
+    el.addRouteForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      el.networkError.textContent = '';
+      hideBanner(el.routesBanner);
+      const submitBtn = el.addRouteForm.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
 
-      const customIp = el.customIpSelect.value;
-      const portRaw = el.customPortInput.value.trim();
-      let port = null;
-
-      if (customIp) {
-        port = parseInt(portRaw, 10);
-        if (!Number.isInteger(port) || port < 1 || port > 65535) {
-          el.networkError.textContent = 'Pick a port between 1 and 65535 for this address.';
+      let result;
+      if (el.addAddressSelect.value === '') {
+        result = await RouteApi.addDefault(opts.session.userId, service.id, el.addProtocol.value);
+      } else {
+        const portStart = parseInt(el.addPortStart.value, 10);
+        if (!Number.isInteger(portStart)) {
+          submitBtn.disabled = false;
+          showBanner(el.routesBanner, 'Pick a port for that address.', true);
           return;
         }
+        const portEndRaw = el.addPortEnd.value.trim();
+        result = await RouteApi.add(opts.session.userId, Number(el.addAddressSelect.value), {
+          instance_id: service.id,
+          protocol: el.addProtocol.value,
+          port_start: portStart,
+          port_end: portEndRaw ? parseInt(portEndRaw, 10) : null,
+        });
       }
 
-      const result = await BackendApi.setNetwork(service.service_name, opts.session.userId, service.id, customIp || null, port);
+      submitBtn.disabled = false;
+
       if (!result.ok) {
-        showBanner(el.banner, reasonText(result, 'Failed to save networking.'), true);
+        showBanner(el.routesBanner, routeErrorText(result), true);
         return;
       }
-      showBanner(
-        el.banner,
-        customIp
-          ? 'Networking saved. It takes effect on the next launch — turn the service off and on.'
-          : 'Back to the node address; a fresh automatic port was assigned. Restart to apply.',
-        false
-      );
-      opts.refresh();
+
+      el.addPortStart.value = '';
+      el.addPortEnd.value = '';
+      loadRoutes();
     });
 
     // Clicks inside the panel (links aside) shouldn't bubble up to the
