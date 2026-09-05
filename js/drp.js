@@ -18,8 +18,20 @@
     el.classList.remove('visible');
   }
 
+  // The two Isolated Linux sizes are separate catalog services (separate
+  // prices) but otherwise mechanically identical -- everywhere else in
+  // this file treats them as one thing, distinguished only by the size
+  // shown alongside the name.
+  function isLinuxServiceName(name) {
+    return name === 'run-linux' || name === 'run-linux-1024';
+  }
+
+  function linuxSizeMb(name) {
+    return name === 'run-linux-1024' ? 1024 : 512;
+  }
+
   function displayName(name) {
-    return name === 'run' ? 'Run' : name === 'run-linux' ? 'Isolated Linux' : name;
+    return name === 'run' ? 'Run' : isLinuxServiceName(name) ? 'Isolated Linux' : name;
   }
 
   const drpBanner = document.getElementById('drpBanner');
@@ -306,6 +318,7 @@
   const linuxForm = document.getElementById('linuxForm');
   const linuxSubmit = document.getElementById('linuxSubmit');
   const linuxNameInput = document.getElementById('linuxNameInput');
+  const linuxSizeSelect = document.getElementById('linuxSizeSelect');
   const linuxExtraPortsGroup = document.getElementById('linuxExtraPortsGroup');
   const linuxExtraPortsInput = document.getElementById('linuxExtraPortsInput');
   const linuxPortsGroup = document.getElementById('linuxPortsGroup');
@@ -331,7 +344,7 @@
     btn.className = 'service-card' + (linuxPanelOpen ? ' active' : '');
     btn.innerHTML =
       '<div class="service-card-name">Isolated Linux</div>' +
-      '<div class="service-card-hint">512 MB</div>';
+      '<div class="service-card-hint">512 MB or 1024 MB</div>';
     btn.addEventListener('click', toggleLinuxPanel);
     linuxCardsEl.appendChild(btn);
   }
@@ -365,6 +378,7 @@
     renderLinuxCard();
     renderIpOptions(linuxIpSelect, '', usedByMap(null));
     linuxNameInput.value = '';
+    linuxSizeSelect.value = '512';
     linuxExtraPortsInput.value = '';
     linuxPortInput.value = '';
     linuxPortEndInput.value = '';
@@ -402,6 +416,7 @@
 
     const result = await LinuxApi.create(session.userId, {
       custom_name: linuxNameInput.value.trim() || null,
+      size_mb: parseInt(linuxSizeSelect.value, 10),
       port: intOrNull(linuxPortInput),
       port_end: intOrNull(linuxPortEndInput),
       container_port: intOrNull(linuxContainerPortInput),
@@ -454,6 +469,7 @@
 
     tr.innerHTML =
       '<td>' + escapeHtml(service.custom_name || 'Isolated Linux') + '</td>' +
+      '<td class="cell-mono">' + linuxSizeMb(service.service_name) + ' MB</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(sshLabel) + '</td>' +
       '<td><span class="status ' + statusClass + '"><span class="status-dot"></span>' + escapeHtml(statusText) + '</span></td>' +
@@ -481,7 +497,7 @@
   function renderLinuxTable(linuxInstances) {
     linuxCountEl.textContent = linuxInstances.length + (linuxInstances.length === 1 ? ' instance' : ' instances');
     if (linuxInstances.length === 0) {
-      linuxBody.innerHTML = '<tr class="empty-row"><td colspan="5">No Isolated Linux instances yet.</td></tr>';
+      linuxBody.innerHTML = '<tr class="empty-row"><td colspan="6">No Isolated Linux instances yet.</td></tr>';
       return;
     }
     linuxBody.innerHTML = '';
@@ -498,7 +514,7 @@
     const servicesResult = await BackendApi.listServices(session.userId);
     if (!servicesResult.ok) {
       runBody.innerHTML = '<tr class="empty-row"><td colspan="5">Couldn’t load. Is the backend running?</td></tr>';
-      linuxBody.innerHTML = '<tr class="empty-row"><td colspan="5">Couldn’t load. Is the backend running?</td></tr>';
+      linuxBody.innerHTML = '<tr class="empty-row"><td colspan="6">Couldn’t load. Is the backend running?</td></tr>';
       runCountEl.textContent = '';
       linuxCountEl.textContent = '';
       return;
@@ -509,7 +525,7 @@
     renderRunCard();
     renderLinuxCard();
     renderRunTable(allServices.filter(function (s) { return s.service_name === 'run'; }));
-    renderLinuxTable(allServices.filter(function (s) { return s.service_name === 'run-linux'; }));
+    renderLinuxTable(allServices.filter(function (s) { return isLinuxServiceName(s.service_name); }));
   }
 
   // A link from the Executable page ("Host as Run") pre-opens the Run

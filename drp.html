@@ -154,7 +154,7 @@
                     <input class="form-input" type="number" id="runContainerPortInput" min="1" max="65535" placeholder="Container port">
                     <input class="form-input" type="number" id="runContainerPortEndInput" min="1" max="65535" placeholder="…through (optional)">
                   </div>
-                  <p class="form-hint">Published (outside) and container (inside) ports — a range on one side needs the same-width range on the other.</p>
+                  <p class="form-hint">Published (outside) and container (inside) ports — container port alone is fine with an automatic published port (e.g. app listens on 3000, published port picked for you). A range on one side needs the same-width range on the other.</p>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="runIpSelect">Address</label>
@@ -215,7 +215,7 @@
           <div class="create-panel-inner">
             <div class="create-panel-body">
               <h2>New Isolated Linux environment</h2>
-              <p>512 MB. Billed once a minute starting at the next tick. Full boot (SSH coming up) takes about a minute.</p>
+              <p>Billed once a minute starting at the next tick. Full boot (SSH coming up) takes about a minute.</p>
 
               <div class="banner" id="linuxPanelBanner"></div>
 
@@ -223,6 +223,13 @@
                 <div class="form-group">
                   <label class="form-label" for="linuxNameInput">Name <span class="optional">(optional)</span></label>
                   <input class="form-input" type="text" id="linuxNameInput" placeholder="e.g. dev-box">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="linuxSizeSelect">Size</label>
+                  <select class="form-select" id="linuxSizeSelect">
+                    <option value="512">512 MB</option>
+                    <option value="1024">1024 MB</option>
+                  </select>
                 </div>
                 <div class="form-group">
                   <label class="form-label" for="linuxIpSelect">Address</label>
@@ -280,6 +287,7 @@
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Size</th>
                 <th>Hostname</th>
                 <th>SSH</th>
                 <th>Status</th>
@@ -287,7 +295,7 @@
               </tr>
             </thead>
             <tbody id="linuxBody">
-              <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+              <tr class="empty-row"><td colspan="6">Loading…</td></tr>
             </tbody>
           </table>
         </div>

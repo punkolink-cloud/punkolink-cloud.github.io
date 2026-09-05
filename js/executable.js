@@ -8,7 +8,7 @@
     { kind: 'node_zip', label: 'Node.js project', hint: 'Uploaded as a .zip archive' },
   ];
 
-  const SERVICE_LABELS = { run: 'Run', 'run-linux': 'Isolated Linux' };
+  const SERVICE_LABELS = { run: 'Run', 'run-linux': 'Isolated Linux', 'run-linux-1024': 'Isolated Linux' };
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {

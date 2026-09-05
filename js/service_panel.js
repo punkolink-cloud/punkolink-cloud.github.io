@@ -176,7 +176,10 @@ const ServicePanel = (function () {
   function build(service, opts) {
     const displayName = opts.displayName || function (name) { return name; };
     const isRunService = !!opts.isRunService;
-    const isLinuxService = service.service_name === 'run-linux';
+    // The two Isolated Linux sizes ("run-linux" 512MB, "run-linux-1024"
+    // 1024MB) are mechanically identical, so every panel section keyed
+    // off "is this Isolated Linux" treats them as one.
+    const isLinuxService = service.service_name === 'run-linux' || service.service_name === 'run-linux-1024';
 
     const tr = document.createElement('tr');
     tr.className = 'row-detail';
