@@ -31,7 +31,10 @@
   }
 
   function displayName(name) {
-    return name === 'run' ? 'Run' : isLinuxServiceName(name) ? 'Isolated Linux' : name;
+    if (name === 'run') return 'Run';
+    if (name === 'run-linux') return 'Small Isolated Linux';
+    if (name === 'run-linux-1024') return 'Medium Isolated Linux';
+    return name;
   }
 
   const drpBanner = document.getElementById('drpBanner');
@@ -311,151 +314,163 @@
   }
 
   // ── Isolated Linux ──
+  //
+  // Two separate CTAs/panels (Small = 512MB, Medium = 1024MB) sharing one
+  // table below -- mechanically identical apart from size, so one factory
+  // builds both instead of duplicating the wiring twice by hand.
 
   const linuxCardsEl = document.getElementById('linuxCards');
-  const linuxPanel = document.getElementById('linuxPanel');
-  const linuxPanelBanner = document.getElementById('linuxPanelBanner');
-  const linuxForm = document.getElementById('linuxForm');
-  const linuxSubmit = document.getElementById('linuxSubmit');
-  const linuxNameInput = document.getElementById('linuxNameInput');
-  const linuxSizeSelect = document.getElementById('linuxSizeSelect');
-  const linuxExtraPortsGroup = document.getElementById('linuxExtraPortsGroup');
-  const linuxExtraPortsInput = document.getElementById('linuxExtraPortsInput');
-  const linuxPortsGroup = document.getElementById('linuxPortsGroup');
-  const linuxPortInput = document.getElementById('linuxPortInput');
-  const linuxPortEndInput = document.getElementById('linuxPortEndInput');
-  const linuxContainerPortInput = document.getElementById('linuxContainerPortInput');
-  const linuxContainerPortEndInput = document.getElementById('linuxContainerPortEndInput');
-  const linuxIpSelect = document.getElementById('linuxIpSelect');
-  const linuxSshPortInput = document.getElementById('linuxSshPortInput');
-  const linuxSshPasswordInput = document.getElementById('linuxSshPasswordInput');
-  const linuxOnExitSelect = document.getElementById('linuxOnExitSelect');
-  const linuxRestartDelayGroup = document.getElementById('linuxRestartDelayGroup');
-  const linuxRestartDelayInput = document.getElementById('linuxRestartDelayInput');
   const linuxBody = document.getElementById('linuxBody');
   const linuxCountEl = document.getElementById('linuxCount');
 
-  let linuxPanelOpen = false;
+  function buildLinuxSizePanel(sizeMb, idPrefix, cardLabel) {
+    const panel = document.getElementById(idPrefix + 'Panel');
+    const panelBanner = document.getElementById(idPrefix + 'PanelBanner');
+    const form = document.getElementById(idPrefix + 'Form');
+    const submit = document.getElementById(idPrefix + 'Submit');
+    const nameInput = document.getElementById(idPrefix + 'NameInput');
+    const extraPortsGroup = document.getElementById(idPrefix + 'ExtraPortsGroup');
+    const extraPortsInput = document.getElementById(idPrefix + 'ExtraPortsInput');
+    const portsGroup = document.getElementById(idPrefix + 'PortsGroup');
+    const portInput = document.getElementById(idPrefix + 'PortInput');
+    const portEndInput = document.getElementById(idPrefix + 'PortEndInput');
+    const containerPortInput = document.getElementById(idPrefix + 'ContainerPortInput');
+    const containerPortEndInput = document.getElementById(idPrefix + 'ContainerPortEndInput');
+    const ipSelect = document.getElementById(idPrefix + 'IpSelect');
+    const sshPortInput = document.getElementById(idPrefix + 'SshPortInput');
+    const sshPasswordInput = document.getElementById(idPrefix + 'SshPasswordInput');
+    const onExitSelect = document.getElementById(idPrefix + 'OnExitSelect');
+    const restartDelayGroup = document.getElementById(idPrefix + 'RestartDelayGroup');
+    const restartDelayInput = document.getElementById(idPrefix + 'RestartDelayInput');
 
-  function renderLinuxCard() {
-    linuxCardsEl.innerHTML = '';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'service-card' + (linuxPanelOpen ? ' active' : '');
-    btn.innerHTML =
-      '<div class="service-card-name">Isolated Linux</div>' +
-      '<div class="service-card-hint">512 MB or 1024 MB</div>';
-    btn.addEventListener('click', toggleLinuxPanel);
-    linuxCardsEl.appendChild(btn);
-  }
+    let panelOpen = false;
 
-  function syncLinuxRestartDelayVisibility() {
-    linuxRestartDelayGroup.classList.toggle('hidden', linuxOnExitSelect.value !== 'restart');
-  }
-  linuxOnExitSelect.addEventListener('change', syncLinuxRestartDelayVisibility);
-
-  // Specific port numbers (the main range, and the SSH port) only make
-  // sense once you're the only tenant on an address — on the node's own
-  // shared address everything is auto-assigned instead, and the only
-  // choice is how many extra (still automatic) ports to open.
-  function syncLinuxAddressFields() {
-    const hasAddress = !!linuxIpSelect.value;
-    linuxPortsGroup.classList.toggle('hidden', !hasAddress);
-    linuxExtraPortsGroup.classList.toggle('hidden', hasAddress);
-    linuxSshPortInput.disabled = !hasAddress;
-    if (!hasAddress) {
-      linuxPortInput.value = '';
-      linuxPortEndInput.value = '';
-      linuxContainerPortInput.value = '';
-      linuxContainerPortEndInput.value = '';
-      linuxSshPortInput.value = '';
+    function renderCard() {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'service-card' + (panelOpen ? ' active' : '');
+      btn.innerHTML =
+        '<div class="service-card-name">' + cardLabel + '</div>' +
+        '<div class="service-card-hint">' + sizeMb + ' MB</div>';
+      btn.addEventListener('click', toggle);
+      return btn;
     }
-  }
-  linuxIpSelect.addEventListener('change', syncLinuxAddressFields);
 
-  function openLinuxPanel() {
-    linuxPanelOpen = true;
-    renderLinuxCard();
-    renderIpOptions(linuxIpSelect, '', usedByMap(null));
-    linuxNameInput.value = '';
-    linuxSizeSelect.value = '512';
-    linuxExtraPortsInput.value = '';
-    linuxPortInput.value = '';
-    linuxPortEndInput.value = '';
-    linuxContainerPortInput.value = '';
-    linuxContainerPortEndInput.value = '';
-    linuxSshPortInput.value = '';
-    linuxSshPasswordInput.value = '';
-    linuxOnExitSelect.value = 'restart';
-    linuxRestartDelayInput.value = '15';
-    syncLinuxRestartDelayVisibility();
-    syncLinuxAddressFields();
-    hideBanner(linuxPanelBanner);
-    linuxPanel.classList.add('is-open');
-  }
-
-  function closeLinuxPanel() {
-    linuxPanelOpen = false;
-    renderLinuxCard();
-    linuxPanel.classList.remove('is-open');
-  }
-
-  function toggleLinuxPanel() {
-    if (linuxPanelOpen) {
-      closeLinuxPanel();
-    } else {
-      openLinuxPanel();
+    function syncRestartDelayVisibility() {
+      restartDelayGroup.classList.toggle('hidden', onExitSelect.value !== 'restart');
     }
-  }
+    onExitSelect.addEventListener('change', syncRestartDelayVisibility);
 
-  linuxForm.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    linuxSubmit.disabled = true;
-    linuxSubmit.textContent = 'Creating…';
-    hideBanner(linuxPanelBanner);
+    // Specific port numbers (the main range, and the SSH port) only make
+    // sense once you're the only tenant on an address — on the node's own
+    // shared address everything is auto-assigned instead, and the only
+    // choice is how many extra (still automatic) ports to open.
+    function syncAddressFields() {
+      const hasAddress = !!ipSelect.value;
+      portsGroup.classList.toggle('hidden', !hasAddress);
+      extraPortsGroup.classList.toggle('hidden', hasAddress);
+      sshPortInput.disabled = !hasAddress;
+      if (!hasAddress) {
+        portInput.value = '';
+        portEndInput.value = '';
+        containerPortInput.value = '';
+        containerPortEndInput.value = '';
+        sshPortInput.value = '';
+      }
+    }
+    ipSelect.addEventListener('change', syncAddressFields);
 
-    const result = await LinuxApi.create(session.userId, {
-      custom_name: linuxNameInput.value.trim() || null,
-      size_mb: parseInt(linuxSizeSelect.value, 10),
-      port: intOrNull(linuxPortInput),
-      port_end: intOrNull(linuxPortEndInput),
-      container_port: intOrNull(linuxContainerPortInput),
-      container_port_end: intOrNull(linuxContainerPortEndInput),
-      custom_ip: linuxIpSelect.value || null,
-      ssh_port: intOrNull(linuxSshPortInput),
-      ssh_password: linuxSshPasswordInput.value || null,
-      extra_port_count: intOrNull(linuxExtraPortsInput),
-      on_exit: linuxOnExitSelect.value,
-      restart_delay_seconds: parseInt(linuxRestartDelayInput.value, 10) || 15,
+    function open() {
+      panelOpen = true;
+      renderLinuxCards();
+      renderIpOptions(ipSelect, '', usedByMap(null));
+      nameInput.value = '';
+      extraPortsInput.value = '';
+      portInput.value = '';
+      portEndInput.value = '';
+      containerPortInput.value = '';
+      containerPortEndInput.value = '';
+      sshPortInput.value = '';
+      sshPasswordInput.value = '';
+      onExitSelect.value = 'restart';
+      restartDelayInput.value = '15';
+      syncRestartDelayVisibility();
+      syncAddressFields();
+      hideBanner(panelBanner);
+      panel.classList.add('is-open');
+    }
+
+    function close() {
+      panelOpen = false;
+      renderLinuxCards();
+      panel.classList.remove('is-open');
+    }
+
+    function toggle() {
+      if (panelOpen) close(); else open();
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      submit.disabled = true;
+      submit.textContent = 'Creating…';
+      hideBanner(panelBanner);
+
+      const result = await LinuxApi.create(session.userId, {
+        custom_name: nameInput.value.trim() || null,
+        size_mb: sizeMb,
+        port: intOrNull(portInput),
+        port_end: intOrNull(portEndInput),
+        container_port: intOrNull(containerPortInput),
+        container_port_end: intOrNull(containerPortEndInput),
+        custom_ip: ipSelect.value || null,
+        ssh_port: intOrNull(sshPortInput),
+        ssh_password: sshPasswordInput.value || null,
+        extra_port_count: intOrNull(extraPortsInput),
+        on_exit: onExitSelect.value,
+        restart_delay_seconds: parseInt(restartDelayInput.value, 10) || 15,
+      });
+
+      submit.disabled = false;
+      submit.textContent = 'Create';
+
+      if (!result.ok) {
+        const data = result.data || {};
+        let reason = data.message || data.reason || 'Failed to create.';
+        if (reason === 'insufficient_balance') reason = 'Insufficient balance.';
+        // The container failed to boot -- surface the actual Docker error
+        // underneath, since that's what's actually actionable (e.g. a
+        // missing base image on the DRP host).
+        const launchDetail = data.launch && data.launch.message;
+        if (launchDetail) reason += ' (' + launchDetail + ')';
+        showBanner(panelBanner, reason, true);
+        return;
+      }
+
+      close();
+      const data = result.data || {};
+      const extraPortsNote = (data.extra_ports && data.extra_ports.length) ? (' Extra ports: ' + data.extra_ports.join(', ') + '.') : '';
+      showBanner(
+        drpBanner,
+        cardLabel + ' created — SSH port ' + data.ssh_port + ', password ' + data.ssh_password +
+        '. This is the only time it’s shown — we don’t store it, so copy it now.' + extraPortsNote + ' ' + (data.boot_notice || ''),
+        false
+      );
+      loadAll();
     });
 
-    linuxSubmit.disabled = false;
-    linuxSubmit.textContent = 'Create';
+    return { renderCard: renderCard };
+  }
 
-    if (!result.ok) {
-      const data = result.data || {};
-      let reason = data.message || data.reason || 'Failed to create.';
-      if (reason === 'insufficient_balance') reason = 'Insufficient balance.';
-      // The container failed to boot -- surface the actual Docker error
-      // underneath, since that's what's actually actionable (e.g. a
-      // missing base image on the DRP host).
-      const launchDetail = data.launch && data.launch.message;
-      if (launchDetail) reason += ' (' + launchDetail + ')';
-      showBanner(linuxPanelBanner, reason, true);
-      return;
-    }
+  const linuxSizePanels = [
+    buildLinuxSizePanel(512, 'linuxSmall', 'Small Isolated Linux'),
+    buildLinuxSizePanel(1024, 'linuxMedium', 'Medium Isolated Linux'),
+  ];
 
-    closeLinuxPanel();
-    const data = result.data || {};
-    const extraPortsNote = (data.extra_ports && data.extra_ports.length) ? (' Extra ports: ' + data.extra_ports.join(', ') + '.') : '';
-    showBanner(
-      drpBanner,
-      'Isolated Linux created — SSH port ' + data.ssh_port + ', password ' + data.ssh_password +
-      '. This is the only time it’s shown — we don’t store it, so copy it now.' + extraPortsNote + ' ' + (data.boot_notice || ''),
-      false
-    );
-    loadAll();
-  });
+  function renderLinuxCards() {
+    linuxCardsEl.innerHTML = '';
+    linuxSizePanels.forEach(function (p) { linuxCardsEl.appendChild(p.renderCard()); });
+  }
 
   function renderLinuxRow(service) {
     const tr = document.createElement('tr');
@@ -468,7 +483,7 @@
     const sshLabel = ((service.custom_ip) || (service.vm && service.vm.hostname) || '—') + (service.ssh_port ? ':' + service.ssh_port : '');
 
     tr.innerHTML =
-      '<td>' + escapeHtml(service.custom_name || 'Isolated Linux') + '</td>' +
+      '<td>' + escapeHtml(service.custom_name || displayName(service.service_name)) + '</td>' +
       '<td class="cell-mono">' + linuxSizeMb(service.service_name) + ' MB</td>' +
       '<td class="cell-mono">' + escapeHtml((service.vm && service.vm.hostname) || '—') + '</td>' +
       '<td class="cell-mono">' + escapeHtml(sshLabel) + '</td>' +
@@ -523,7 +538,7 @@
     allServices = (servicesResult.data && servicesResult.data.services) || [];
 
     renderRunCard();
-    renderLinuxCard();
+    renderLinuxCards();
     renderRunTable(allServices.filter(function (s) { return s.service_name === 'run'; }));
     renderLinuxTable(allServices.filter(function (s) { return isLinuxServiceName(s.service_name); }));
   }

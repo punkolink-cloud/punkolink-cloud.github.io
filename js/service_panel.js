@@ -147,7 +147,14 @@ const ServicePanel = (function () {
                     '</div>' +
                     '<div class="form-group hidden" data-el="addPortGroup">' +
                       '<label class="form-label">Port</label>' +
-                      '<input class="form-input" type="number" min="1" max="65535" data-el="addPortStart" placeholder="Port">' +
+                      '<div class="port-grid" style="grid-template-columns: 1fr 1fr;">' +
+                        '<input class="form-input" type="number" min="1" max="65535" data-el="addPortStart" placeholder="Port">' +
+                        '<input class="form-input hidden" type="number" min="1" max="65535" data-el="addPortEnd" placeholder="…through (optional)">' +
+                      '</div>' +
+                    '</div>' +
+                    '<div class="form-group hidden" data-el="addContainerPortGroup">' +
+                      '<label class="form-label">Container Port <span class="optional">(optional — defaults to this instance\'s own container port)</span></label>' +
+                      '<input class="form-input" type="number" min="1" max="65535" data-el="addContainerPort" placeholder="Automatic">' +
                     '</div>' +
                     '<div class="form-actions">' +
                       '<button type="submit" class="btn btn-primary btn-sm">Add</button>' +
@@ -293,7 +300,8 @@ const ServicePanel = (function () {
       routes.forEach(function (route) {
         const rowEl = document.createElement('tr');
         const addressLabel = route.address ? escapeHtml(route.address) : 'Default';
-        const portLabel = ':' + route.port_start + (route.port_end !== route.port_start ? '-' + route.port_end : '');
+        const portLabel = ':' + route.port_start + (route.port_end !== route.port_start ? '-' + route.port_end : '') +
+          (route.container_port != null ? ' → :' + route.container_port : '');
         rowEl.innerHTML =
           '<td class="cell-mono">' + addressLabel + '</td>' +
           '<td class="cell-mono">' + escapeHtml(route.protocol.toUpperCase()) + '</td>' +
@@ -353,7 +361,17 @@ const ServicePanel = (function () {
     }
 
     function syncAddPortVisibility() {
-      el.addPortGroup.classList.toggle('hidden', el.addAddressSelect.value === '');
+      const hasAddress = el.addAddressSelect.value !== '';
+      el.addPortGroup.classList.toggle('hidden', !hasAddress);
+      // A port *range* only makes sense on a rented address (the default
+      // address always hands out exactly one auto-assigned port) --
+      // Container Port, on the other hand, is about the container's own
+      // internal listener, so it's offered either way, Run only.
+      const showPortEnd = hasAddress && isRunService;
+      el.addPortEnd.classList.toggle('hidden', !showPortEnd);
+      if (!showPortEnd) el.addPortEnd.value = '';
+      el.addContainerPortGroup.classList.toggle('hidden', !isRunService);
+      if (!isRunService) el.addContainerPort.value = '';
     }
     el.addAddressSelect.addEventListener('change', syncAddPortVisibility);
 
@@ -469,9 +487,16 @@ const ServicePanel = (function () {
       const submitBtn = el.addRouteForm.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
 
+      // Container Port is Run-only (the server rejects it otherwise) --
+      // everything else (Docker Hub images, Isolated Linux) either has a
+      // fixed internal port of its own or stays 1:1 by design.
+      const containerPort = isRunService && el.addContainerPort.value.trim() !== ''
+        ? parseInt(el.addContainerPort.value, 10)
+        : null;
+
       let result;
       if (el.addAddressSelect.value === '') {
-        result = await RouteApi.addDefault(opts.session.userId, service.id, el.addProtocol.value);
+        result = await RouteApi.addDefault(opts.session.userId, service.id, el.addProtocol.value, containerPort);
       } else {
         const port = parseInt(el.addPortStart.value, 10);
         if (!Number.isInteger(port)) {
@@ -479,15 +504,14 @@ const ServicePanel = (function () {
           showBanner(el.routesBanner, 'Pick a port for that address.', true);
           return;
         }
-        // One port in, the same port out -- no separate range here; the
-        // Network page's own routes still support a real range for
-        // whoever wants one, but an instance's own editor keeps this
-        // simple.
+        const portEndRaw = el.addPortEnd.value.trim();
+        const portEnd = portEndRaw !== '' ? parseInt(portEndRaw, 10) : port;
         result = await RouteApi.add(opts.session.userId, Number(el.addAddressSelect.value), {
           instance_id: service.id,
           protocol: el.addProtocol.value,
           port_start: port,
-          port_end: port,
+          port_end: portEnd,
+          container_port: containerPort,
         });
       }
 
@@ -499,6 +523,8 @@ const ServicePanel = (function () {
       }
 
       el.addPortStart.value = '';
+      el.addPortEnd.value = '';
+      el.addContainerPort.value = '';
       loadRoutes();
     });
 
