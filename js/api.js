@@ -180,9 +180,16 @@ const RouteApi = {
   list: function (userId) {
     return apiRequest('/routes/' + userId, { method: 'GET' });
   },
-  // Creates the address's route if it doesn't have one yet, otherwise
-  // replaces its configuration wholesale — one call either way.
-  update: function (userId, addressId, body) {
+  // Always adds another route on this address — an address can carry
+  // several, each an independent port range.
+  add: function (userId, addressId, body) {
     return apiRequest('/routes/' + userId + '/addresses/' + addressId, { method: 'POST', body: body });
+  },
+  // Updates one specific existing route by its own id.
+  update: function (userId, routeId, body) {
+    return apiRequest('/routes/' + userId + '/routes/' + routeId, { method: 'POST', body: body });
+  },
+  remove: function (userId, routeId) {
+    return apiRequest('/routes/' + userId + '/routes/' + routeId, { method: 'DELETE' });
   },
 };

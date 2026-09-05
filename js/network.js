@@ -38,9 +38,10 @@
   const ROUTE_REASON_TEXT = {
     instance_has_direct_binding: 'That instance already has a direct custom IP bound on its own page — clear it there first.',
     address_not_held: 'That address is not one you rent anymore.',
-    port_in_use: 'That port is already routed on this address.',
-    invalid_port_range: 'Pick a port between 1 and 65535.',
+    port_in_use: 'That port range overlaps another route already on this address.',
+    invalid_port_range: 'Pick a port (or range) between 1 and 65535.',
     unknown_instance: 'Pick a valid target instance.',
+    unknown_route: 'That route no longer exists — reload the page.',
   };
 
   function routeReasonText(result, fallback) {
@@ -150,11 +151,16 @@
     });
   }
 
-  function buildDetailRow(addressRow) {
-    const tr = document.createElement('tr');
-    tr.className = 'row-detail';
+  // One address can carry several independent routes (each its own port
+  // range, to the same or a different instance) -- this builds ONE
+  // route's own form + Save/Delete, or (route === null) a blank
+  // "add another route" form. Each is a fully self-contained DOM
+  // subtree so several can coexist in the same expanded row without
+  // their data-el lookups clobbering each other.
+  function buildRouteForm(addressRow, route) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'section-card';
 
-    const route = addressRow.route;
     const instanceOptions = services.filter(function (s) {
       // A route DNATs to the instance's own default binding -- one
       // already directly bound to a custom IP (the legacy per-service
@@ -162,53 +168,50 @@
       return !s.custom_ip || (route && s.id === route.instance_id);
     });
 
-    tr.innerHTML =
-      '<td colspan="6">' +
-        '<div class="row-detail-outer">' +
-          '<div class="row-detail-inner">' +
-            '<div class="row-detail-body">' +
-              '<div class="banner" data-el="banner"></div>' +
-              '<form data-el="form">' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Routes To</label>' +
-                  '<select class="form-select" data-el="instance" required></select>' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Protocol</label>' +
-                  '<select class="form-select" data-el="protocol">' +
-                    '<option value="tcp">TCP</option>' +
-                    '<option value="udp">UDP</option>' +
-                  '</select>' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Port</label>' +
-                  '<input class="form-input" type="number" min="1" max="65535" data-el="port" required>' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Source IP Whitelist <span class="optional">(optional)</span></label>' +
-                  '<textarea class="form-textarea" rows="2" placeholder="One IP or CIDR per line" data-el="whitelist"></textarea>' +
-                  '<p class="form-hint">If set, only these sources reach it — the blacklist below is ignored.</p>' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label class="form-label">Source IP Blacklist <span class="optional">(optional)</span></label>' +
-                  '<textarea class="form-textarea" rows="2" placeholder="One IP or CIDR per line" data-el="blacklist"></textarea>' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label class="form-label" style="display: flex; align-items: center; gap: var(--space-2); text-transform: none; letter-spacing: normal;">' +
-                    '<input type="checkbox" data-el="enabled"> Enabled' +
-                  '</label>' +
-                '</div>' +
-                '<div class="form-actions">' +
-                  '<button type="submit" class="btn btn-primary btn-sm">Save</button>' +
-                '</div>' +
-              '</form>' +
-            '</div>' +
+    wrapper.innerHTML =
+      '<h3>' + (route ? 'Route' : 'Add Another Route') + '</h3>' +
+      '<div class="banner" data-el="banner"></div>' +
+      '<form data-el="form">' +
+        '<div class="form-group">' +
+          '<label class="form-label">Routes To</label>' +
+          '<select class="form-select" data-el="instance" required></select>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Protocol</label>' +
+          '<select class="form-select" data-el="protocol">' +
+            '<option value="tcp">TCP</option>' +
+            '<option value="udp">UDP</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Port <span class="optional">(or a range)</span></label>' +
+          '<div class="port-grid" style="grid-template-columns: 1fr 1fr;">' +
+            '<input class="form-input" type="number" min="1" max="65535" data-el="portStart" placeholder="Port" required>' +
+            '<input class="form-input" type="number" min="1" max="65535" data-el="portEnd" placeholder="…through (optional)">' +
           '</div>' +
         '</div>' +
-      '</td>';
+        '<div class="form-group">' +
+          '<label class="form-label">Source IP Whitelist <span class="optional">(optional)</span></label>' +
+          '<textarea class="form-textarea" rows="2" placeholder="One IP or CIDR per line" data-el="whitelist"></textarea>' +
+          '<p class="form-hint">If set, only these sources reach it — the blacklist below is ignored.</p>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Source IP Blacklist <span class="optional">(optional)</span></label>' +
+          '<textarea class="form-textarea" rows="2" placeholder="One IP or CIDR per line" data-el="blacklist"></textarea>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label" style="display: flex; align-items: center; gap: var(--space-2); text-transform: none; letter-spacing: normal;">' +
+            '<input type="checkbox" data-el="enabled"> Enabled' +
+          '</label>' +
+        '</div>' +
+        '<div class="form-actions">' +
+          '<button type="submit" class="btn btn-primary btn-sm">' + (route ? 'Save' : 'Add Route') + '</button>' +
+          (route ? '<button type="button" class="btn btn-danger btn-sm" data-el="deleteBtn">Delete</button>' : '') +
+        '</div>' +
+      '</form>';
 
     const el = {};
-    tr.querySelectorAll('[data-el]').forEach(function (node) { el[node.getAttribute('data-el')] = node; });
+    wrapper.querySelectorAll('[data-el]').forEach(function (node) { el[node.getAttribute('data-el')] = node; });
 
     el.instance.innerHTML = instanceOptions.map(function (s) {
       return '<option value="' + s.id + '">' + escapeHtml(s.custom_name || serviceDisplayName(s.service_name)) + '</option>';
@@ -217,7 +220,8 @@
     if (route) {
       el.instance.value = route.instance_id;
       el.protocol.value = route.protocol;
-      el.port.value = route.port_start;
+      el.portStart.value = route.port_start;
+      el.portEnd.value = route.port_end !== route.port_start ? route.port_end : '';
       el.whitelist.value = route.whitelist.join('\n');
       el.blacklist.value = route.blacklist.join('\n');
       el.enabled.checked = route.enabled;
@@ -227,21 +231,27 @@
 
     el.form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      const port = parseInt(el.port.value, 10);
-      if (!el.instance.value || !Number.isInteger(port)) return;
+      const portStart = parseInt(el.portStart.value, 10);
+      if (!el.instance.value || !Number.isInteger(portStart)) return;
+      const portEndRaw = el.portEnd.value.trim();
+
+      const body = {
+        instance_id: Number(el.instance.value),
+        protocol: el.protocol.value,
+        port_start: portStart,
+        port_end: portEndRaw ? parseInt(portEndRaw, 10) : null,
+        whitelist: linesToList(el.whitelist.value),
+        blacklist: linesToList(el.blacklist.value),
+        enabled: el.enabled.checked,
+      };
 
       const submitBtn = el.form.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       hideBanner(el.banner);
 
-      const result = await RouteApi.update(session.userId, addressRow.address_id, {
-        instance_id: Number(el.instance.value),
-        protocol: el.protocol.value,
-        port_start: port,
-        whitelist: linesToList(el.whitelist.value),
-        blacklist: linesToList(el.blacklist.value),
-        enabled: el.enabled.checked,
-      });
+      const result = route
+        ? await RouteApi.update(session.userId, route.id, body)
+        : await RouteApi.add(session.userId, addressRow.address_id, body);
 
       submitBtn.disabled = false;
 
@@ -250,9 +260,49 @@
         return;
       }
 
-      showBanner(el.banner, 'Saved.', false);
+      showBanner(el.banner, route ? 'Saved.' : 'Route added.', false);
       loadAll();
     });
+
+    if (route && el.deleteBtn) {
+      el.deleteBtn.addEventListener('click', async function () {
+        if (!window.confirm('Remove this route? This cannot be undone.')) return;
+        el.deleteBtn.disabled = true;
+        const result = await RouteApi.remove(session.userId, route.id);
+        if (!result.ok) {
+          showBanner(el.banner, 'Failed to remove the route.', true);
+          el.deleteBtn.disabled = false;
+          return;
+        }
+        loadAll();
+      });
+    }
+
+    return wrapper;
+  }
+
+  function buildDetailRow(addressRow) {
+    const tr = document.createElement('tr');
+    tr.className = 'row-detail';
+
+    const td = document.createElement('td');
+    td.colSpan = 6;
+    const outer = document.createElement('div');
+    outer.className = 'row-detail-outer';
+    const inner = document.createElement('div');
+    inner.className = 'row-detail-inner';
+    const body = document.createElement('div');
+    body.className = 'row-detail-body';
+
+    addressRow.routes.forEach(function (route) {
+      body.appendChild(buildRouteForm(addressRow, route));
+    });
+    body.appendChild(buildRouteForm(addressRow, null));
+
+    inner.appendChild(body);
+    outer.appendChild(inner);
+    td.appendChild(outer);
+    tr.appendChild(td);
 
     tr.addEventListener('click', function (e) { e.stopPropagation(); });
 
@@ -277,16 +327,24 @@
     tr.className = 'row-link';
     tr.dataset.id = addressRow.address_id;
 
-    const route = addressRow.route;
-    const routesTo = route
-      ? escapeHtml(route.instance_custom_name || serviceDisplayName(route.instance_service_name))
-      : '<span class="cell-hint">Not configured</span>';
-    const protoPort = route ? escapeHtml(route.protocol.toUpperCase()) + ' :' + route.port_start : '—';
+    const routes = addressRow.routes;
+    let routesTo = '<span class="cell-hint">Not configured</span>';
+    let protoPort = '—';
     let status = '<span class="cell-hint">Idle</span>';
-    if (route) {
+
+    if (routes.length === 1) {
+      const route = routes[0];
+      routesTo = escapeHtml(route.instance_custom_name || serviceDisplayName(route.instance_service_name));
+      protoPort = escapeHtml(route.protocol.toUpperCase()) + ' :' + route.port_start +
+        (route.port_end !== route.port_start ? '-' + route.port_end : '');
       status = route.enabled
         ? '<span class="status is-active"><span class="status-dot"></span>enabled</span>'
         : '<span class="status is-stopped"><span class="status-dot"></span>disabled</span>';
+    } else if (routes.length > 1) {
+      routesTo = routes.length + ' routes';
+      protoPort = '<span class="cell-hint">see below</span>';
+      const enabledCount = routes.filter(function (r) { return r.enabled; }).length;
+      status = '<span class="status is-active"><span class="status-dot"></span>' + enabledCount + '/' + routes.length + ' enabled</span>';
     }
 
     tr.innerHTML =
