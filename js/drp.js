@@ -418,8 +418,15 @@
     linuxSubmit.textContent = 'Create';
 
     if (!result.ok) {
-      const reason = (result.data && (result.data.message || result.data.reason)) || 'Failed to create.';
-      showBanner(linuxPanelBanner, reason === 'insufficient_balance' ? 'Insufficient balance.' : reason, true);
+      const data = result.data || {};
+      let reason = data.message || data.reason || 'Failed to create.';
+      if (reason === 'insufficient_balance') reason = 'Insufficient balance.';
+      // The container failed to boot -- surface the actual Docker error
+      // underneath, since that's what's actually actionable (e.g. a
+      // missing base image on the DRP host).
+      const launchDetail = data.launch && data.launch.message;
+      if (launchDetail) reason += ' (' + launchDetail + ')';
+      showBanner(linuxPanelBanner, reason, true);
       return;
     }
 
