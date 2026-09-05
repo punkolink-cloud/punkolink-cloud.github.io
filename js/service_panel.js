@@ -146,11 +146,8 @@ const ServicePanel = (function () {
                       '</select>' +
                     '</div>' +
                     '<div class="form-group hidden" data-el="addPortGroup">' +
-                      '<label class="form-label">Port <span class="optional">(or a range)</span></label>' +
-                      '<div class="port-grid" style="grid-template-columns: 1fr 1fr;">' +
-                        '<input class="form-input" type="number" min="1" max="65535" data-el="addPortStart" placeholder="Port">' +
-                        '<input class="form-input" type="number" min="1" max="65535" data-el="addPortEnd" placeholder="…through (optional)">' +
-                      '</div>' +
+                      '<label class="form-label">Port</label>' +
+                      '<input class="form-input" type="number" min="1" max="65535" data-el="addPortStart" placeholder="Port">' +
                     '</div>' +
                     '<div class="form-actions">' +
                       '<button type="submit" class="btn btn-primary btn-sm">Add</button>' +
@@ -343,7 +340,10 @@ const ServicePanel = (function () {
     function renderAddAddressOptions() {
       let optionsHtml = '<option value="">Default (automatic port)</option>';
       heldAddressesForRoutes.forEach(function (a) {
-        optionsHtml += '<option value="' + a.address_id + '">' + escapeHtml(a.address) + '</option>';
+        // L3Api.list (GET /addresses/:user_id) names this field `id` --
+        // not `address_id`, which is what RouteApi.list's own, different
+        // response shape uses instead.
+        optionsHtml += '<option value="' + a.id + '">' + escapeHtml(a.address) + '</option>';
       });
       el.addAddressSelect.innerHTML = optionsHtml;
       syncAddPortVisibility();
@@ -470,18 +470,21 @@ const ServicePanel = (function () {
       if (el.addAddressSelect.value === '') {
         result = await RouteApi.addDefault(opts.session.userId, service.id, el.addProtocol.value);
       } else {
-        const portStart = parseInt(el.addPortStart.value, 10);
-        if (!Number.isInteger(portStart)) {
+        const port = parseInt(el.addPortStart.value, 10);
+        if (!Number.isInteger(port)) {
           submitBtn.disabled = false;
           showBanner(el.routesBanner, 'Pick a port for that address.', true);
           return;
         }
-        const portEndRaw = el.addPortEnd.value.trim();
+        // One port in, the same port out -- no separate range here; the
+        // Network page's own routes still support a real range for
+        // whoever wants one, but an instance's own editor keeps this
+        // simple.
         result = await RouteApi.add(opts.session.userId, Number(el.addAddressSelect.value), {
           instance_id: service.id,
           protocol: el.addProtocol.value,
-          port_start: portStart,
-          port_end: portEndRaw ? parseInt(portEndRaw, 10) : null,
+          port_start: port,
+          port_end: port,
         });
       }
 
@@ -493,7 +496,6 @@ const ServicePanel = (function () {
       }
 
       el.addPortStart.value = '';
-      el.addPortEnd.value = '';
       loadRoutes();
     });
 
