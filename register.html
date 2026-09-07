@@ -82,7 +82,6 @@
         invalid_email: 'Enter a valid email address.',
         password_required: 'Password is required.',
         email_already_registered: 'That email is already registered.',
-        email_send_failed: 'Couldn’t send the confirmation email — try again shortly.',
         internal_error: 'Something went wrong. Try again.',
       };
 
@@ -127,7 +126,7 @@
 
         const registerResult = await AuthApi.register(email, password);
 
-        if (!registerResult.ok) {
+        if (!registerResult.ok || !registerResult.data || !registerResult.data.token) {
           const reason = registerResult.data && registerResult.data.reason;
           showBanner(REASON_MESSAGES[reason] || 'Registration failed.', true);
           submitBtn.disabled = false;
@@ -135,14 +134,10 @@
           return;
         }
 
-        // No token comes back, and logging in wouldn't work yet anyway —
-        // the account isn't usable until the confirmation email is
-        // clicked. Send them to log in once that's done instead of
-        // pretending this is instant.
-        form.reset();
-        showBanner('Account created — check your email for a confirmation link, then log in.', false);
-        submitBtn.textContent = 'Create Account';
-        setTimeout(function () { window.location.href = 'login.html'; }, 3000);
+        // Email verification is off — /register hands back the same JWT
+        // /login would, so store it and drop straight into the dashboard.
+        Session.save(registerResult.data.token);
+        window.location.href = 'dashboard.html';
       });
     })();
   </script>
