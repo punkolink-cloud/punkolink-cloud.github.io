@@ -494,6 +494,24 @@ main {
   }
 }
 
+/* A text input with a small action button pinned to its right -- e.g.
+   the "Generate" button beside the password field in the Database
+   create form. */
+.input-with-button {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.input-with-button .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-with-button .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
 .form-input,
 .form-textarea,
 .form-select {

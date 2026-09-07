@@ -25,6 +25,52 @@
     return DISPLAY_NAMES[name] || name;
   }
 
+  // Services that boot their own PostgreSQL server and so are configured
+  // through POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD rather than
+  // free-form env: the create panel swaps its "Environment Variables"
+  // textarea for three dedicated fields and assembles those three lines
+  // on submit. Values here prefill the fields -- ParadeDB's image ships a
+  // conventional demo user/db, plain PostgreSQL starts blank so the user
+  // picks their own. (pgvector / apache-age use the same image family;
+  // add them here if they should get the same treatment.)
+  const DB_CREDENTIAL_DEFAULTS = {
+    postgres: { db: '', user: '', password: '' },
+    paradedb: { db: 'paradedb_demo', user: 'postgres', password: 'password' },
+  };
+
+  function usesDbCredentials(name) {
+    return Object.prototype.hasOwnProperty.call(DB_CREDENTIAL_DEFAULTS, name);
+  }
+
+  // PostgreSQL identifier rules, loosely: starts with a letter or
+  // underscore, then letters / digits / underscore / $, 63 chars max --
+  // what the server accepts unquoted. Returns a message to show, or null
+  // when the three values are usable.
+  function dbCredentialsProblem(dbName, dbUser, dbPass) {
+    const ident = /^[A-Za-z_][A-Za-z0-9_$]{0,62}$/;
+    if (!dbName) return 'Enter a database name.';
+    if (!ident.test(dbName)) return 'Database name must start with a letter or underscore, then only letters, digits, underscore or $ (max 63).';
+    if (!dbUser) return 'Enter a user name.';
+    if (!ident.test(dbUser)) return 'User name must start with a letter or underscore, then only letters, digits, underscore or $ (max 63).';
+    if (!dbPass) return 'Enter or generate a password.';
+    if (/[\r\n]/.test(dbPass)) return 'Password can’t contain a line break.';
+    if (dbPass !== dbPass.trim()) return 'Password can’t start or end with a space.';
+    return null;
+  }
+
+  // ~119 bits from a 20-char pick out of a 55-char ambiguity-free
+  // alphabet (no 0/O/1/l/I). Uses the Web Crypto RNG.
+  function generatePassword() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const bytes = new Uint8Array(20);
+    window.crypto.getRandomValues(bytes);
+    let out = '';
+    for (let i = 0; i < bytes.length; i++) {
+      out += alphabet[bytes[i] % alphabet.length];
+    }
+    return out;
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
@@ -276,7 +322,13 @@
   const createPanelTitle = document.getElementById('createPanelTitle');
   const addModalBanner = document.getElementById('addModalBanner');
   const customNameInput = document.getElementById('customNameInput');
+  const envTextGroup = document.getElementById('envTextGroup');
   const envTextInput = document.getElementById('envTextInput');
+  const dbCredsGroup = document.getElementById('dbCredsGroup');
+  const dbNameInput = document.getElementById('dbNameInput');
+  const dbUserInput = document.getElementById('dbUserInput');
+  const dbPassInput = document.getElementById('dbPassInput');
+  const dbPassGenerate = document.getElementById('dbPassGenerate');
   const addServiceForm = document.getElementById('addServiceForm');
   const addServiceSubmit = document.getElementById('addServiceSubmit');
   const parentGroup = document.getElementById('parentGroup');
@@ -327,10 +379,28 @@
     createPanelTitle.textContent = 'New ' + displayName(name);
     customNameInput.value = '';
     envTextInput.value = '';
+
+    // PostgreSQL-family services get the three structured credential
+    // fields (prefilled per DB_CREDENTIAL_DEFAULTS); everything else gets
+    // the raw env textarea. Exactly one of the two groups is visible.
+    const dbCreds = usesDbCredentials(name);
+    dbCredsGroup.classList.toggle('hidden', !dbCreds);
+    envTextGroup.classList.toggle('hidden', dbCreds);
+    if (dbCreds) {
+      const defaults = DB_CREDENTIAL_DEFAULTS[name];
+      dbNameInput.value = defaults.db;
+      dbUserInput.value = defaults.user;
+      dbPassInput.value = defaults.password;
+    }
+
     hideBanner(addModalBanner);
     syncParentField();
     createPanel.classList.add('is-open');
   }
+
+  dbPassGenerate.addEventListener('click', function () {
+    dbPassInput.value = generatePassword();
+  });
 
   function closePanel() {
     selectedService = null;
@@ -353,6 +423,24 @@
     if (!selectedService) return;
     if (!parentGroup.classList.contains('hidden') && !parentSelect.value) return;
 
+    // The PostgreSQL-family services send their three credential fields
+    // as POSTGRES_* env lines; everything else sends the raw textarea.
+    let envText = envTextInput.value;
+    if (usesDbCredentials(selectedService)) {
+      const dbName = dbNameInput.value.trim();
+      const dbUser = dbUserInput.value.trim();
+      const dbPass = dbPassInput.value;
+      const problem = dbCredentialsProblem(dbName, dbUser, dbPass);
+      if (problem) {
+        showBanner(addModalBanner, problem, true);
+        return;
+      }
+      envText =
+        'POSTGRES_DB=' + dbName + '\n' +
+        'POSTGRES_USER=' + dbUser + '\n' +
+        'POSTGRES_PASSWORD=' + dbPass;
+    }
+
     addServiceSubmit.disabled = true;
     addServiceSubmit.textContent = 'Creating…';
     hideBanner(addModalBanner);
@@ -361,7 +449,7 @@
       selectedService,
       session.userId,
       customNameInput.value.trim(),
-      envTextInput.value,
+      envText,
       parentGroup.classList.contains('hidden') ? null : parentSelect.value
     );
 
