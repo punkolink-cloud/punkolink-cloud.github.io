@@ -29,18 +29,35 @@
   // through POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD rather than
   // free-form env: the create panel swaps its "Environment Variables"
   // textarea for three dedicated fields and assembles those three lines
-  // on submit. Values here prefill the fields -- ParadeDB's image ships a
-  // conventional demo user/db; PostgreSQL, pgvector and Apache AGE start
-  // blank so the user picks their own.
+  // on submit. The per-service value prefills the fields -- all blank for
+  // now, so every one starts empty and the user picks their own.
   const DB_CREDENTIAL_DEFAULTS = {
     postgres: { db: '', user: '', password: '' },
     pgvector: { db: '', user: '', password: '' },
     'apache-age': { db: '', user: '', password: '' },
-    paradedb: { db: 'paradedb_demo', user: 'postgres', password: 'password' },
+    paradedb: { db: '', user: '', password: '' },
   };
 
   function usesDbCredentials(name) {
     return Object.prototype.hasOwnProperty.call(DB_CREDENTIAL_DEFAULTS, name);
+  }
+
+  // Valkey has no free-form env worth setting either -- the one thing it
+  // needs is a password. The create panel shows a single Password field
+  // instead of the textarea and submits it as VALKEY_PASSWORD=<value>;
+  // DRP turns that into the server's --requirepass flag, and the
+  // orchestrator rejects a valkey instance created without one.
+  function usesValkeyPassword(name) {
+    return name === 'valkey';
+  }
+
+  // Shared password checks. Returns a message to show, or null when the
+  // value is usable as a KEY=value env line.
+  function passwordProblem(pass) {
+    if (!pass) return 'Enter or generate a password.';
+    if (/[\r\n]/.test(pass)) return 'Password can’t contain a line break.';
+    if (pass !== pass.trim()) return 'Password can’t start or end with a space.';
+    return null;
   }
 
   // PostgreSQL identifier rules, loosely: starts with a letter or
@@ -53,10 +70,7 @@
     if (!ident.test(dbName)) return 'Database name must start with a letter or underscore, then only letters, digits, underscore or $ (max 63).';
     if (!dbUser) return 'Enter a user name.';
     if (!ident.test(dbUser)) return 'User name must start with a letter or underscore, then only letters, digits, underscore or $ (max 63).';
-    if (!dbPass) return 'Enter or generate a password.';
-    if (/[\r\n]/.test(dbPass)) return 'Password can’t contain a line break.';
-    if (dbPass !== dbPass.trim()) return 'Password can’t start or end with a space.';
-    return null;
+    return passwordProblem(dbPass);
   }
 
   // ~119 bits from a 20-char pick out of a 55-char ambiguity-free
@@ -96,6 +110,7 @@
     parent_already_extended: 'That instance already has an extension attached — only one at a time.',
     managed_by_extension: 'Managed from its extension’s own page — stop/start it there instead.',
     has_active_extension: 'Remove its extension first, then delete it.',
+    valkey_password_required: 'Set a password — Valkey is reachable on a public port.',
   };
 
   function reasonText(result, fallback) {
@@ -330,6 +345,9 @@
   const dbUserInput = document.getElementById('dbUserInput');
   const dbPassInput = document.getElementById('dbPassInput');
   const dbPassGenerate = document.getElementById('dbPassGenerate');
+  const valkeyCredsGroup = document.getElementById('valkeyCredsGroup');
+  const valkeyPassInput = document.getElementById('valkeyPassInput');
+  const valkeyPassGenerate = document.getElementById('valkeyPassGenerate');
   const addServiceForm = document.getElementById('addServiceForm');
   const addServiceSubmit = document.getElementById('addServiceSubmit');
   const parentGroup = document.getElementById('parentGroup');
@@ -381,17 +399,24 @@
     customNameInput.value = '';
     envTextInput.value = '';
 
-    // PostgreSQL-family services get the three structured credential
-    // fields (prefilled per DB_CREDENTIAL_DEFAULTS); everything else gets
-    // the raw env textarea. Exactly one of the two groups is visible.
+    // Three mutually exclusive ways to configure a new instance:
+    //  - PostgreSQL-family services: the three structured credential
+    //    fields (prefilled per DB_CREDENTIAL_DEFAULTS);
+    //  - Valkey: a single Password field;
+    //  - everything else: the raw "Environment Variables" textarea.
     const dbCreds = usesDbCredentials(name);
+    const valkeyCreds = usesValkeyPassword(name);
     dbCredsGroup.classList.toggle('hidden', !dbCreds);
-    envTextGroup.classList.toggle('hidden', dbCreds);
+    valkeyCredsGroup.classList.toggle('hidden', !valkeyCreds);
+    envTextGroup.classList.toggle('hidden', dbCreds || valkeyCreds);
     if (dbCreds) {
       const defaults = DB_CREDENTIAL_DEFAULTS[name];
       dbNameInput.value = defaults.db;
       dbUserInput.value = defaults.user;
       dbPassInput.value = defaults.password;
+    }
+    if (valkeyCreds) {
+      valkeyPassInput.value = '';
     }
 
     hideBanner(addModalBanner);
@@ -401,6 +426,10 @@
 
   dbPassGenerate.addEventListener('click', function () {
     dbPassInput.value = generatePassword();
+  });
+
+  valkeyPassGenerate.addEventListener('click', function () {
+    valkeyPassInput.value = generatePassword();
   });
 
   function closePanel() {
@@ -425,7 +454,8 @@
     if (!parentGroup.classList.contains('hidden') && !parentSelect.value) return;
 
     // The PostgreSQL-family services send their three credential fields
-    // as POSTGRES_* env lines; everything else sends the raw textarea.
+    // as POSTGRES_* env lines; Valkey sends its one password field as
+    // VALKEY_PASSWORD; everything else sends the raw textarea.
     let envText = envTextInput.value;
     if (usesDbCredentials(selectedService)) {
       const dbName = dbNameInput.value.trim();
@@ -440,6 +470,14 @@
         'POSTGRES_DB=' + dbName + '\n' +
         'POSTGRES_USER=' + dbUser + '\n' +
         'POSTGRES_PASSWORD=' + dbPass;
+    } else if (usesValkeyPassword(selectedService)) {
+      const pass = valkeyPassInput.value;
+      const problem = passwordProblem(pass);
+      if (problem) {
+        showBanner(addModalBanner, problem, true);
+        return;
+      }
+      envText = 'VALKEY_PASSWORD=' + pass;
     }
 
     addServiceSubmit.disabled = true;
