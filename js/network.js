@@ -317,6 +317,59 @@
     return wrapper;
   }
 
+  // One rented address's own domain-name field — a plain label the user
+  // points at the address with their own DNS. Informational: the backend
+  // only stores and echoes it, nothing routes on it. Not shown for the
+  // node's shared default row (its hostname is the operator's, not
+  // something the user sets).
+  function buildDomainForm(addressRow) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'section-card';
+    wrapper.innerHTML =
+      '<h3>Domain Name</h3>' +
+      '<div class="banner" data-el="banner"></div>' +
+      '<form data-el="form">' +
+        '<div class="form-group">' +
+          '<label class="form-label">Domain pointed at ' + escapeHtml(addressRow.address) + ' <span class="optional">(optional)</span></label>' +
+          '<input class="form-input" type="text" data-el="domain" placeholder="app.example.com" autocomplete="off" spellcheck="false">' +
+          '<p class="form-hint">Informational only — create the A/AAAA record with your own DNS provider. Leave blank to clear.</p>' +
+        '</div>' +
+        '<div class="form-actions">' +
+          '<button type="submit" class="btn btn-primary btn-sm">Save</button>' +
+        '</div>' +
+      '</form>';
+
+    const el = {};
+    wrapper.querySelectorAll('[data-el]').forEach(function (node) { el[node.getAttribute('data-el')] = node; });
+    el.domain.value = addressRow.domain_name || '';
+
+    el.form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const submitBtn = el.form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      hideBanner(el.banner);
+
+      const result = await L3Api.setDomain(session.userId, addressRow.address_id, el.domain.value.trim());
+
+      submitBtn.disabled = false;
+
+      if (!result.ok) {
+        const reason = result.data && result.data.reason;
+        showBanner(
+          el.banner,
+          reason === 'invalid_domain' ? 'That doesn’t look like a valid domain name.' : (reason || 'Failed to save the domain name.'),
+          true
+        );
+        return;
+      }
+
+      showBanner(el.banner, el.domain.value.trim() ? 'Saved.' : 'Cleared.', false);
+      loadAll();
+    });
+
+    return wrapper;
+  }
+
   function buildDetailRow(addressRow) {
     const tr = document.createElement('tr');
     tr.className = 'row-detail';
@@ -329,6 +382,12 @@
     inner.className = 'row-detail-inner';
     const body = document.createElement('div');
     body.className = 'row-detail-body';
+
+    // Rented addresses get a domain-name field; the shared default row
+    // doesn't (see buildDomainForm).
+    if (!addressRow.is_default) {
+      body.appendChild(buildDomainForm(addressRow));
+    }
 
     addressRow.routes.forEach(function (route) {
       body.appendChild(buildRouteForm(addressRow, route));
@@ -383,13 +442,15 @@
       status = '<span class="status is-active"><span class="status-dot"></span>' + enabledCount + '/' + routes.length + ' enabled</span>';
     }
 
-    // The default row shows the node's own address (if configured) plus
-    // its domain name right underneath — every other row only ever has
-    // the one address, no hostname of its own.
+    // Both the default row and a rented one show a name under the
+    // address when there is one: the operator's hostname for the default
+    // row, the holder's own domain name (buildDomainForm) for a rented
+    // address.
     const addressCell = addressRow.is_default
       ? escapeHtml(addressRow.address || '—') +
         (addressRow.hostname ? '<div class="cell-hint">' + escapeHtml(addressRow.hostname) + '</div>' : '')
-      : escapeHtml(addressRow.address);
+      : escapeHtml(addressRow.address) +
+        (addressRow.domain_name ? '<div class="cell-hint">' + escapeHtml(addressRow.domain_name) + '</div>' : '');
 
     tr.innerHTML =
       '<td class="cell-mono">' + addressCell + '</td>' +

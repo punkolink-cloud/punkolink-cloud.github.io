@@ -132,6 +132,11 @@ const L3Api = {
   rent: function (userId, family) {
     return apiRequest('/addresses/' + userId, { method: 'POST', body: { family: family } });
   },
+  // Set (or, with an empty string, clear) the informational domain name
+  // shown next to a rented address. Nothing routes on it.
+  setDomain: function (userId, id, domainName) {
+    return apiRequest('/addresses/' + userId + '/' + id, { method: 'POST', body: { domain_name: domainName || null } });
+  },
   release: function (userId, id) {
     return apiRequest('/addresses/' + userId + '/' + id, { method: 'DELETE' });
   },
