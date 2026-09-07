@@ -30,11 +30,12 @@
   // free-form env: the create panel swaps its "Environment Variables"
   // textarea for three dedicated fields and assembles those three lines
   // on submit. Values here prefill the fields -- ParadeDB's image ships a
-  // conventional demo user/db, plain PostgreSQL starts blank so the user
-  // picks their own. (pgvector / apache-age use the same image family;
-  // add them here if they should get the same treatment.)
+  // conventional demo user/db; PostgreSQL, pgvector and Apache AGE start
+  // blank so the user picks their own.
   const DB_CREDENTIAL_DEFAULTS = {
     postgres: { db: '', user: '', password: '' },
+    pgvector: { db: '', user: '', password: '' },
+    'apache-age': { db: '', user: '', password: '' },
     paradedb: { db: 'paradedb_demo', user: 'postgres', password: 'password' },
   };
 
