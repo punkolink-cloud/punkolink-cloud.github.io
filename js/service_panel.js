@@ -17,11 +17,45 @@ const ServicePanel = (function () {
     }).join('\n');
   }
 
+  // Services configured through dedicated credential fields rather than
+  // the raw env textarea -- must stay in step with the create-panel
+  // equivalents in managed_services.js (which this module can't see:
+  // drp.html loads service_panel.js on its own).
+  var DB_CREDENTIAL_SERVICES = ['postgres', 'pgvector', 'apache-age', 'paradedb'];
+  function usesDbCredentials(name) { return DB_CREDENTIAL_SERVICES.indexOf(name) !== -1; }
+  function usesValkeyPassword(name) { return name === 'valkey'; }
+
+  // Same generator + checks as the create panel.
+  function generatePassword() {
+    var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    var bytes = new Uint8Array(20);
+    window.crypto.getRandomValues(bytes);
+    var out = '';
+    for (var i = 0; i < bytes.length; i++) out += alphabet[bytes[i] % alphabet.length];
+    return out;
+  }
+
+  function passwordProblem(pass) {
+    if (/[\r\n]/.test(pass)) return 'Password can’t contain a line break.';
+    if (pass !== pass.trim()) return 'Password can’t start or end with a space.';
+    return null;
+  }
+
+  function identProblem(value, label) {
+    if (!value) return 'Enter a ' + label + '.';
+    if (!/^[A-Za-z_][A-Za-z0-9_$]{0,62}$/.test(value)) {
+      return label[0].toUpperCase() + label.slice(1) +
+        ' must start with a letter or underscore, then only letters, digits, underscore or $ (max 63).';
+    }
+    return null;
+  }
+
   const REASON_TEXT = {
     managed_by_extension: 'This instance carries an extension — stop/start it from the extension’s own row instead.',
     has_active_extension: 'Remove its extension first, then delete it.',
     no_payload_uploaded: 'Upload a payload below before pressing Run.',
     address_not_rented: 'That address isn’t one you rent anymore. Pick another, or Default.',
+    valkey_password_required: 'Set a password — Valkey can’t run unauthenticated on a public port.',
   };
 
   function reasonText(result, fallback) {
@@ -66,7 +100,7 @@ const ServicePanel = (function () {
                 '</div>' +
               '</div>' +
               '<div>' +
-                '<div class="section-card">' +
+                '<div class="section-card" data-el="envSection">' +
                   '<h3>Environment Variables</h3>' +
                   '<p class="section-desc">One <code>KEY=value</code> pair per line. Replaces whatever is currently set. <code>PORT</code> is assigned automatically and can’t be set here.</p>' +
                   '<form data-el="envForm">' +
@@ -76,6 +110,36 @@ const ServicePanel = (function () {
                     '</div>' +
                     '<div class="form-actions">' +
                       '<button type="submit" class="btn btn-primary btn-sm">Save Environment</button>' +
+                    '</div>' +
+                  '</form>' +
+                '</div>' +
+                // Structured credentials, shown instead of the raw env
+                // textarea for the PostgreSQL-family services and Valkey
+                // (see usesDbCredentials / usesValkeyPassword). The
+                // password is never rendered back -- the field is blank
+                // and only writes a new one when filled in.
+                '<div class="section-card hidden" data-el="credsSection">' +
+                  '<h3 data-el="credsHeading">Credentials</h3>' +
+                  '<p class="section-desc" data-el="credsDesc"></p>' +
+                  '<form data-el="credsForm">' +
+                    '<div class="form-group hidden" data-el="credsDbNameGroup">' +
+                      '<label class="form-label">Database Name</label>' +
+                      '<input class="form-input" type="text" data-el="credsDbName" autocomplete="off" spellcheck="false">' +
+                    '</div>' +
+                    '<div class="form-group hidden" data-el="credsDbUserGroup">' +
+                      '<label class="form-label">User</label>' +
+                      '<input class="form-input" type="text" data-el="credsDbUser" autocomplete="off" spellcheck="false">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                      '<label class="form-label">New Password <span class="optional">(leave blank to keep the current one)</span></label>' +
+                      '<div class="input-with-button">' +
+                        '<input class="form-input" type="text" data-el="credsPass" autocomplete="off" spellcheck="false" placeholder="unchanged">' +
+                        '<button type="button" class="btn btn-ghost btn-sm" data-el="credsPassGenerate">Generate</button>' +
+                      '</div>' +
+                    '</div>' +
+                    '<span class="form-error" data-el="credsError"></span>' +
+                    '<div class="form-actions">' +
+                      '<button type="submit" class="btn btn-primary btn-sm">Save</button>' +
                     '</div>' +
                   '</form>' +
                 '</div>' +
@@ -252,7 +316,85 @@ const ServicePanel = (function () {
       el.actionsHint.classList.remove('hidden');
     }
 
-    el.envText.value = envMapToText(service.env_vars);
+    // ── credentials vs the raw env textarea ──
+    // PostgreSQL-family services and Valkey are configured through the
+    // dedicated fields the create panel already uses; everything else
+    // keeps the KEY=value textarea above.
+    const dbCreds = usesDbCredentials(service.service_name);
+    const valkeyCreds = usesValkeyPassword(service.service_name);
+    const structuredCreds = dbCreds || valkeyCreds;
+    const currentEnv = service.env_vars || {};
+
+    // For the structured services the textarea would otherwise drop
+    // POSTGRES_PASSWORD / VALKEY_PASSWORD straight into the DOM -- it's
+    // left empty (and hidden), and the password is never rendered back.
+    el.envText.value = structuredCreds ? '' : envMapToText(service.env_vars);
+
+    el.envSection.classList.toggle('hidden', structuredCreds);
+    el.credsSection.classList.toggle('hidden', !structuredCreds);
+
+    if (structuredCreds) {
+      el.credsDbNameGroup.classList.toggle('hidden', !dbCreds);
+      el.credsDbUserGroup.classList.toggle('hidden', !dbCreds);
+      el.credsPass.value = '';
+
+      if (dbCreds) {
+        el.credsHeading.textContent = 'Credentials';
+        el.credsDesc.innerHTML = 'Sets <code>POSTGRES_DB</code>, <code>POSTGRES_USER</code> and <code>POSTGRES_PASSWORD</code>. An already-initialized instance keeps the database and user it was created with until it’s recreated; a new password applies on the container’s next restart.';
+        el.credsDbName.value = currentEnv.POSTGRES_DB || '';
+        el.credsDbUser.value = currentEnv.POSTGRES_USER || '';
+      } else {
+        el.credsHeading.textContent = 'Password';
+        el.credsDesc.innerHTML = 'Sets <code>VALKEY_PASSWORD</code>. Applied on the container’s next restart.';
+      }
+
+      function credsFail(message) {
+        el.credsError.textContent = message;
+        el.credsError.classList.add('visible');
+      }
+
+      el.credsPassGenerate.addEventListener('click', function () {
+        el.credsPass.value = generatePassword();
+      });
+
+      el.credsForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideBanner(el.banner);
+        el.credsError.textContent = '';
+        el.credsError.classList.remove('visible');
+
+        const next = Object.assign({}, currentEnv);
+        const newPass = el.credsPass.value;
+
+        if (dbCreds) {
+          const dbName = el.credsDbName.value.trim();
+          const dbUser = el.credsDbUser.value.trim();
+          const nameProblem = identProblem(dbName, 'database name');
+          if (nameProblem) { credsFail(nameProblem); return; }
+          const userProblem = identProblem(dbUser, 'user name');
+          if (userProblem) { credsFail(userProblem); return; }
+          next.POSTGRES_DB = dbName;
+          next.POSTGRES_USER = dbUser;
+        }
+
+        if (newPass !== '') {
+          const pwProblem = passwordProblem(newPass);
+          if (pwProblem) { credsFail(pwProblem); return; }
+          next[dbCreds ? 'POSTGRES_PASSWORD' : 'VALKEY_PASSWORD'] = newPass;
+        }
+
+        const result = await BackendApi.setEnv(
+          service.service_name, opts.session.userId, service.id, envMapToText(next)
+        );
+        if (!result.ok) {
+          credsFail(reasonText(result, 'Failed to save.'));
+          return;
+        }
+        showBanner(el.banner, 'Saved.', false);
+        opts.refresh();
+      });
+    }
+
     el.onExitSelect.value = service.on_exit || 'restart';
     el.restartDelayInput.value = service.restart_delay_seconds != null ? service.restart_delay_seconds : 15;
 
