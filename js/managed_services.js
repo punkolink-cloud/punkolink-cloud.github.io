@@ -42,11 +42,12 @@
     return Object.prototype.hasOwnProperty.call(DB_CREDENTIAL_DEFAULTS, name);
   }
 
-  // Valkey has no free-form env worth setting either -- the one thing it
-  // needs is a password. The create panel shows a single Password field
-  // instead of the textarea and submits it as VALKEY_PASSWORD=<value>;
-  // DRP turns that into the server's --requirepass flag, and the
-  // orchestrator rejects a valkey instance created without one.
+  // Valkey has no free-form env worth setting either -- it needs a user
+  // and a password. The create panel shows those two fields instead of
+  // the textarea and submits them as VALKEY_USER / VALKEY_PASSWORD; DRP
+  // turns them into the server's --user ACL entry (or --requirepass when
+  // the user is the built-in `default`), and the orchestrator rejects a
+  // valkey instance created without both.
   function usesValkeyPassword(name) {
     return name === 'valkey';
   }
@@ -57,6 +58,20 @@
     if (!pass) return 'Enter or generate a password.';
     if (/[\r\n]/.test(pass)) return 'Password can’t contain a line break.';
     if (pass !== pass.trim()) return 'Password can’t start or end with a space.';
+    return null;
+  }
+
+  // Valkey embeds the password in an ACL token ('>pass'), so no
+  // whitespace at all; the user is a Redis ACL name.
+  function valkeyPasswordProblem(pass) {
+    return passwordProblem(pass) || (/\s/.test(pass) ? 'Password can’t contain spaces.' : null);
+  }
+
+  function valkeyUserProblem(user) {
+    if (!user) return 'Enter a user name.';
+    if (!/^[A-Za-z0-9_.\-]{1,64}$/.test(user)) {
+      return 'User name may use letters, digits, dot, dash and underscore (max 64).';
+    }
     return null;
   }
 
@@ -110,6 +125,7 @@
     parent_already_extended: 'That instance already has an extension attached — only one at a time.',
     managed_by_extension: 'Managed from its extension’s own page — stop/start it there instead.',
     has_active_extension: 'Remove its extension first, then delete it.',
+    valkey_user_required: 'Set a user — Valkey is reachable on a public port.',
     valkey_password_required: 'Set a password — Valkey is reachable on a public port.',
   };
 
@@ -346,6 +362,7 @@
   const dbPassInput = document.getElementById('dbPassInput');
   const dbPassGenerate = document.getElementById('dbPassGenerate');
   const valkeyCredsGroup = document.getElementById('valkeyCredsGroup');
+  const valkeyUserInput = document.getElementById('valkeyUserInput');
   const valkeyPassInput = document.getElementById('valkeyPassInput');
   const valkeyPassGenerate = document.getElementById('valkeyPassGenerate');
   const addServiceForm = document.getElementById('addServiceForm');
@@ -416,6 +433,7 @@
       dbPassInput.value = defaults.password;
     }
     if (valkeyCreds) {
+      valkeyUserInput.value = '';
       valkeyPassInput.value = '';
     }
 
@@ -471,13 +489,14 @@
         'POSTGRES_USER=' + dbUser + '\n' +
         'POSTGRES_PASSWORD=' + dbPass;
     } else if (usesValkeyPassword(selectedService)) {
+      const user = valkeyUserInput.value.trim();
       const pass = valkeyPassInput.value;
-      const problem = passwordProblem(pass);
+      const problem = valkeyUserProblem(user) || valkeyPasswordProblem(pass);
       if (problem) {
         showBanner(addModalBanner, problem, true);
         return;
       }
-      envText = 'VALKEY_PASSWORD=' + pass;
+      envText = 'VALKEY_USER=' + user + '\n' + 'VALKEY_PASSWORD=' + pass;
     }
 
     addServiceSubmit.disabled = true;

@@ -154,12 +154,17 @@
                      Stays hidden. -->
                 <div id="valkeyCredsGroup" class="hidden">
                   <div class="form-group">
+                    <label class="form-label" for="valkeyUserInput">User</label>
+                    <input class="form-input" type="text" id="valkeyUserInput" autocomplete="off" spellcheck="false" placeholder="appuser">
+                    <p class="form-hint">The ACL user your client authenticates as (<code>redis://user:password@…</code>). Use <code>default</code> for the classic password-only setup.</p>
+                  </div>
+                  <div class="form-group">
                     <label class="form-label" for="valkeyPassInput">Password</label>
                     <div class="input-with-button">
                       <input class="form-input" type="text" id="valkeyPassInput" autocomplete="off" spellcheck="false" placeholder="choose a strong password">
                       <button type="button" class="btn btn-ghost btn-sm" id="valkeyPassGenerate">Generate</button>
                     </div>
-                    <p class="form-hint">Required — Valkey is reachable on a public port, so it can't run unauthenticated. Copy the password now; it isn't shown again.</p>
+                    <p class="form-hint">Required — Valkey is reachable on a public port, so it can't run unauthenticated. No spaces. Copy it now; it isn't shown again.</p>
                   </div>
                 </div>
                 <div class="form-group" id="envTextGroup">

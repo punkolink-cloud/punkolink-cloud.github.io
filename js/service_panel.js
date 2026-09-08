@@ -41,6 +41,20 @@ const ServicePanel = (function () {
     return null;
   }
 
+  // Valkey embeds the password in an ACL token ('>pass'), so no
+  // whitespace at all.
+  function valkeyPasswordProblem(pass) {
+    return passwordProblem(pass) || (/\s/.test(pass) ? 'Password can’t contain spaces.' : null);
+  }
+
+  function valkeyUserProblem(user) {
+    if (!user) return 'Enter a user name.';
+    if (!/^[A-Za-z0-9_.\-]{1,64}$/.test(user)) {
+      return 'User name may use letters, digits, dot, dash and underscore (max 64).';
+    }
+    return null;
+  }
+
   function identProblem(value, label) {
     if (!value) return 'Enter a ' + label + '.';
     if (!/^[A-Za-z_][A-Za-z0-9_$]{0,62}$/.test(value)) {
@@ -55,6 +69,7 @@ const ServicePanel = (function () {
     has_active_extension: 'Remove its extension first, then delete it.',
     no_payload_uploaded: 'Upload a payload below before pressing Run.',
     address_not_rented: 'That address isn’t one you rent anymore. Pick another, or Default.',
+    valkey_user_required: 'Set a user — Valkey can’t run unauthenticated on a public port.',
     valkey_password_required: 'Set a password — Valkey can’t run unauthenticated on a public port.',
   };
 
@@ -76,7 +91,6 @@ const ServicePanel = (function () {
                 '<div class="detail-card">' +
                   '<h3>Overview</h3>' +
                   '<div class="kv-list">' +
-                    '<div class="kv-row"><span class="kv-key">Instance ID</span><span class="kv-val" data-el="kvId"></span></div>' +
                     '<div class="kv-row"><span class="kv-key">Hostname</span><span class="kv-val" data-el="kvHostname"></span></div>' +
                     '<div class="kv-row"><span class="kv-key">Port</span><span class="kv-val" data-el="kvPort"></span></div>' +
                     '<div class="kv-row hidden" data-el="kvContainerPortRow"><span class="kv-key">Container Port</span><span class="kv-val" data-el="kvContainerPort"></span></div>' +
@@ -102,7 +116,7 @@ const ServicePanel = (function () {
               '<div>' +
                 '<div class="section-card" data-el="envSection">' +
                   '<h3>Environment Variables</h3>' +
-                  '<p class="section-desc">One <code>KEY=value</code> pair per line. Replaces whatever is currently set. <code>PORT</code> is assigned automatically and can’t be set here.</p>' +
+                  '<p class="section-desc">One <code>KEY=value</code> pair per line. Replaces whatever is currently set, and restarts a running instance to apply it. <code>PORT</code> is assigned automatically and can’t be set here.</p>' +
                   '<form data-el="envForm">' +
                     '<div class="form-group">' +
                       '<textarea class="form-textarea" data-el="envText" rows="6" placeholder="API_KEY=...&#10;DEBUG=true"></textarea>' +
@@ -278,7 +292,6 @@ const ServicePanel = (function () {
       return (end != null && end !== start) ? (start + '–' + end) : String(start);
     }
 
-    el.kvId.textContent = service.id;
     el.kvHostname.textContent = (service.vm && service.vm.hostname) || '—';
     el.kvPort.textContent = formatPortRange(service.port, service.port_end);
 
@@ -334,18 +347,20 @@ const ServicePanel = (function () {
     el.credsSection.classList.toggle('hidden', !structuredCreds);
 
     if (structuredCreds) {
+      // Database Name is PostgreSQL-only; the User field is shared (it's
+      // the ACL user for Valkey), the password is always write-only.
       el.credsDbNameGroup.classList.toggle('hidden', !dbCreds);
-      el.credsDbUserGroup.classList.toggle('hidden', !dbCreds);
+      el.credsDbUserGroup.classList.remove('hidden');
       el.credsPass.value = '';
 
+      el.credsHeading.textContent = 'Credentials';
       if (dbCreds) {
-        el.credsHeading.textContent = 'Credentials';
-        el.credsDesc.innerHTML = 'Sets <code>POSTGRES_DB</code>, <code>POSTGRES_USER</code> and <code>POSTGRES_PASSWORD</code>. An already-initialized instance keeps the database and user it was created with until it’s recreated; a new password applies on the container’s next restart.';
+        el.credsDesc.innerHTML = 'Sets <code>POSTGRES_DB</code>, <code>POSTGRES_USER</code> and <code>POSTGRES_PASSWORD</code>. Saving restarts a running instance to apply them — its current contents don’t carry over.';
         el.credsDbName.value = currentEnv.POSTGRES_DB || '';
         el.credsDbUser.value = currentEnv.POSTGRES_USER || '';
       } else {
-        el.credsHeading.textContent = 'Password';
-        el.credsDesc.innerHTML = 'Sets <code>VALKEY_PASSWORD</code>. Applied on the container’s next restart.';
+        el.credsDesc.innerHTML = 'Sets <code>VALKEY_USER</code> and <code>VALKEY_PASSWORD</code>. Saving restarts a running instance to apply them.';
+        el.credsDbUser.value = currentEnv.VALKEY_USER || '';
       }
 
       function credsFail(message) {
@@ -375,10 +390,15 @@ const ServicePanel = (function () {
           if (userProblem) { credsFail(userProblem); return; }
           next.POSTGRES_DB = dbName;
           next.POSTGRES_USER = dbUser;
+        } else {
+          const user = el.credsDbUser.value.trim();
+          const userProblem = valkeyUserProblem(user);
+          if (userProblem) { credsFail(userProblem); return; }
+          next.VALKEY_USER = user;
         }
 
         if (newPass !== '') {
-          const pwProblem = passwordProblem(newPass);
+          const pwProblem = dbCreds ? passwordProblem(newPass) : valkeyPasswordProblem(newPass);
           if (pwProblem) { credsFail(pwProblem); return; }
           next[dbCreds ? 'POSTGRES_PASSWORD' : 'VALKEY_PASSWORD'] = newPass;
         }
@@ -390,7 +410,7 @@ const ServicePanel = (function () {
           credsFail(reasonText(result, 'Failed to save.'));
           return;
         }
-        showBanner(el.banner, 'Saved.', false);
+        showBanner(el.banner, isActive ? 'Saved — restarting the instance to apply it.' : 'Saved.', false);
         opts.refresh();
       });
     }
@@ -588,7 +608,7 @@ const ServicePanel = (function () {
         el.envError.textContent = (result.data && result.data.reason) || 'Failed to save environment variables.';
         return;
       }
-      showBanner(el.banner, 'Environment variables saved.', false);
+      showBanner(el.banner, isActive ? 'Environment variables saved — restarting the instance to apply them.' : 'Environment variables saved.', false);
       opts.refresh();
     });
 
@@ -604,7 +624,7 @@ const ServicePanel = (function () {
       el.payloadFile.value = '';
       showBanner(
         el.banner,
-        isActive ? 'Payload uploaded. Restart the container to run it.' : 'Payload uploaded. Press Run to build and start the container.',
+        isActive ? 'Payload uploaded — restarting the container to run it.' : 'Payload uploaded. Press Run to build and start the container.',
         false
       );
       opts.refresh();
@@ -620,7 +640,8 @@ const ServicePanel = (function () {
         showBanner(el.banner, (result.data && result.data.reason) || 'Failed to save settings.', true);
         return;
       }
-      showBanner(el.banner, 'Settings saved.', false);
+      showBanner(el.banner, isActive ? 'Settings saved — restarting the instance to apply them.' : 'Settings saved.', false);
+      opts.refresh();
     });
 
     el.addRouteForm.addEventListener('submit', async function (e) {

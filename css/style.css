@@ -1083,7 +1083,7 @@ tbody tr.row-link:hover {
 }
 
 /* Overview card sits in the narrow left column, so its long technical
-   values — hostname, instance id — can't fit on the label's line and
+   values — hostname especially — can't fit on the label's line and
    were being clipped / pushed past the card edge. Stack the value under
    its label to give it the card's full width, and let unbreakable
    strings wrap instead of overflowing. Scoped to .detail-card so the
